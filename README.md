@@ -2,7 +2,7 @@
 
 個人用の車両メンテナンス・給油記録アプリ。スマートフォン向け PWA として利用できる Next.js アプリケーションです。
 
-**現在のバージョン:** v1.2.1（[`package.json`](./package.json) の `version` が正本）
+**現在のバージョン:** v1.5.0（[`package.json`](./package.json) の `version` が正本）
 
 ## 機能
 
