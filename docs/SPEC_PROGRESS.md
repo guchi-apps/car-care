@@ -42,7 +42,7 @@
 | Next.js App Router + TypeScript + Tailwind | ✅ | プロジェクト全体 |
 | MySQL + Prisma | ✅ | `prisma/schema.prisma`, `prisma/migrations/` |
 | NextAuth (Auth.js) | ✅ | `src/auth.ts`, `src/auth.config.ts` |
-| Google OAuth | ✅ | `src/auth.ts` |
+| Google OAuth | ✅ | `src/auth.ts`（本番 / 開発で別クライアント。開発用は `.env.local`） |
 | WebAuthn / Passkey | ✅ | Provider + ログイン (`next-auth/webauthn`) + ホーム初回登録 (`passkey-register-card.tsx`) + 設定画面の登録・再設定 (`passkey-settings.tsx`) |
 | Signaly Webhook（ログイン通知） | ✅ | `src/lib/signaly.ts`, `src/auth.ts` events |
 | PWA | ⚠️ | `public/manifest.json`, `public/sw.js`, `public/icons/`, `app-bottom-nav.tsx`, `app-page.tsx` |
@@ -149,11 +149,16 @@
 | `SSH_HOST`, `SSH_USER`, `SSH_PORT` | 本番 DB SSH トンネル | 任意 | — |
 | `AUTH_SECRET` | NextAuth | ✅ | 要設定 |
 | `AUTH_URL` / `AUTH_URL_DEV` | 公開 URL | ✅ | 要設定 |
-| `GOOGLE_CLIENT_ID/SECRET` | OAuth | ✅ | 要設定 |
 | `SIGNALY_WEBHOOK_LOGIN_URL` | 通知（新規登録・ログイン共通） | ✅ | 要設定 |
 | `TARGET_DIR` (`target-dir`) | VPS デプロイ先パス | — | 1Password `apps/Car` |
 | `PORT` (`port`) | 待受ポート | — | 1Password `apps/Car` |
 | `OP_SERVICE_ACCOUNT_TOKEN` | GitHub Actions → 1Password | — | 要設定 |
+
+### 環境変数（`.env.local` / 開発のみ）
+
+| 変数 | 用途 | 備考 |
+|------|------|------|
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth（開発用クライアント） | 本番用（1Password `apps/Car`）とは別クライアント。`.env.local.example` 参照（#21） |
 
 ---
 
@@ -179,6 +184,7 @@
 Signaly:  src/lib/signaly.ts
 DB:       prisma/schema.prisma, src/lib/prisma.ts, src/lib/database-url.ts
 1Password: .env.op.example, scripts/with-op-env.sh, scripts/with-op-prod-db.sh, scripts/prod-db-tunnel.sh, scripts/setup-db.sh
+開発用 OAuth: .env.local.example（Google Client ID/Secret、本番とは別クライアント）
 PWA:      public/manifest.json, public/sw.js, src/components/app-bottom-nav.tsx, src/components/app-page.tsx
 DevOps:   ecosystem.config.js, .github/workflows/ci.yml, .github/workflows/deploy.yml, .github/workflows/release.yml, .github/deploy.env.tpl, .github/ci.env.tpl, scripts/construct-database-url.sh, scripts/vps-bootstrap.sh
 進捗正本: docs/SPEC_PROGRESS.md  ← このファイル
@@ -211,6 +217,7 @@ DevOps:   ecosystem.config.js, .github/workflows/ci.yml, .github/workflows/deplo
 
 | 日付 | 内容 |
 |------|------|
+| 2026-07-07 | Google OAuth を本番・開発で別クライアントに分離。開発用 Client ID/Secret は 1Password ではなく `.env.local`（`.env.local.example` 追加）で管理（#21） |
 | 2026-07-07 | Google ログインのみのため許可メールアドレス制限（`ALLOWED_EMAIL`）を廃止 |
 | 2026-07-07 | 新規登録・ログイン通知を1つの Signaly ログイン通知に統合（`notifySignalySignup` を削除し `events.signIn` に一本化） |
 | 2026-07-07 | アプリ名称を Car Maintenance → Car Care に変更（README / manifest / UI 表記） |

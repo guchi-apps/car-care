@@ -33,10 +33,10 @@ WSL2 では `npm run dev` 起動時に Windows 側のポート転送（3000）�
 powershell -ExecutionPolicy Bypass -File scripts/wsl-port-forward.ps1
 ```
 
-- Google ログイン: OAuth クライアントに `http://<LAN-IP>.sslip.io:3000/api/auth/callback/google` を追加（生 IP は Google が拒否する）
+- Google ログイン: 開発用 OAuth クライアント（本番とは別。`.env.local` で管理）に `http://<LAN-IP>.sslip.io:3000/api/auth/callback/google` を追加（生 IP は Google が拒否する）
 - パスキー: HTTP + LAN IP では不可（Google ログインを利用）
 
-環境変数は 1Password CLI（`.env.op`）経由。詳細は `.env.example` を参照。
+環境変数は 1Password CLI（`.env.op`）経由。Google OAuth の Client ID / Secret のみ `.env.local`（`.env.local.example` 参照）。詳細は `.env.example` を参照。
 
 ## 本番 DB のデータ確認（開発環境）
 

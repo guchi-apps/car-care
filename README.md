@@ -34,7 +34,7 @@
 - Node.js **20.19.0 以上**（[`.nvmrc`](./.nvmrc) 参照）
 - MySQL（開発時はローカル `127.0.0.1:3306`）
 - [1Password CLI](https://developer.1password.com/docs/cli/)（`op` コマンド）
-- Google OAuth クライアント（ログイン用）
+- Google OAuth クライアント（ログイン用。**本番用とは別に開発用クライアントを作成**）
 
 ## セットアップ
 
@@ -44,9 +44,9 @@
 npm install
 ```
 
-### 2. 環境変数（1Password）
+### 2. 環境変数（1Password + .env.local）
 
-秘密情報はリポジトリに含めず、1Password 経由で注入します。
+DB・Auth・通知などの秘密情報はリポジトリに含めず、1Password 経由で注入します。
 
 ```bash
 npm run env:init          # .env.op.example → .env.op をコピー
@@ -55,6 +55,13 @@ op signin
 ```
 
 1Password の apps ボールト「Car」アイテムに登録するフィールド一覧は [`.env.example`](./.env.example) を参照してください。
+
+Google OAuth の Client ID / Secret のみ、本番と開発で別クライアントを使う想定のため 1Password ではなく `.env.local` で管理します。
+
+```bash
+cp .env.local.example .env.local
+# Google Cloud Console で開発用 OAuth クライアントを作成し、Client ID / Secret を .env.local に設定
+```
 
 ### 3. データベース
 
@@ -232,6 +239,7 @@ docs/              # 仕様・進捗ドキュメント
 | [`AGENTS.md`](./AGENTS.md) | AI Agent 向け開発ガイド |
 | [`.env.example`](./.env.example) | 環境変数フィールド一覧 |
 | [`.env.op.example`](./.env.op.example) | 1Password CLI 設定テンプレート |
+| [`.env.local.example`](./.env.local.example) | 開発用 Google OAuth クライアント設定テンプレート |
 
 ## ライセンス
 
