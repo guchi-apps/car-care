@@ -1,6 +1,6 @@
 {
-  "name": "Car Maintenance",
-  "short_name": "CarCare",
+  "name": "Car Care",
+  "short_name": "Car Care",
   "description": "自家用車の維持管理アプリ（給油・メンテナンス・コスト管理）",
   "start_url": "/",
   "scope": "/",

@@ -21,4 +21,4 @@ export DEV_ALLOWED_ORIGINS="${DEV_ALLOWED_ORIGINS:-}"
 
 DEV_BUNDLER_FLAG="$(pick_dev_bundler)"
 
-exec bash "$ROOT_DIR/scripts/with-op-env.sh" bash -c "bash scripts/tsx.sh scripts/db-check.ts && prisma generate && next dev -H 0.0.0.0 -p ${PORT} ${DEV_BUNDLER_FLAG}"
+exec bash "$ROOT_DIR/scripts/with-local-env.sh" bash -c "bash scripts/tsx.sh scripts/db-check.ts && prisma generate && next dev -H 0.0.0.0 -p ${PORT} ${DEV_BUNDLER_FLAG}"

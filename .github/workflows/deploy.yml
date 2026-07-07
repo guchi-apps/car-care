@@ -119,7 +119,6 @@ jobs:
           AUTH_SECRET: ${{ env.AUTH_SECRET }}
           GOOGLE_CLIENT_ID: ${{ env.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ env.GOOGLE_CLIENT_SECRET }}
-          ALLOWED_EMAIL: ${{ env.ALLOWED_EMAIL }}
 
       - name: Create archive
         run: |
@@ -199,9 +198,7 @@ jobs:
           AUTH_SECRET: ${{ env.AUTH_SECRET }}
           GOOGLE_CLIENT_ID: ${{ env.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ env.GOOGLE_CLIENT_SECRET }}
-          ALLOWED_EMAIL: ${{ env.ALLOWED_EMAIL }}
-          DISCORD_WEBHOOK_SIGNUP_URL: ${{ env.DISCORD_WEBHOOK_SIGNUP_URL }}
-          DISCORD_WEBHOOK_LOGIN_URL: ${{ env.DISCORD_WEBHOOK_LOGIN_URL }}
+          SIGNALY_WEBHOOK_LOGIN_URL: ${{ env.SIGNALY_WEBHOOK_LOGIN_URL }}
           TARGET_DIR: ${{ env.TARGET_DIR }}
           APP_PORT: ${{ env.PORT }}
         with:
@@ -209,7 +206,7 @@ jobs:
           username: ${{ env.USERNAME }}
           key: ${{ env.SSH_PRIVATE_KEY }}
           port: ${{ env.SSH_PORT }}
-          envs: DATABASE_URL,DB_USER,DB_PASSWORD,DB_HOST,DB_PORT,DB_NAME,AUTH_URL,AUTH_SECRET,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,ALLOWED_EMAIL,DISCORD_WEBHOOK_SIGNUP_URL,DISCORD_WEBHOOK_LOGIN_URL,TARGET_DIR,APP_PORT
+          envs: DATABASE_URL,DB_USER,DB_PASSWORD,DB_HOST,DB_PORT,DB_NAME,AUTH_URL,AUTH_SECRET,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,SIGNALY_WEBHOOK_LOGIN_URL,TARGET_DIR,APP_PORT
           script: |
             set -euo pipefail
             cd "${TARGET_DIR}"
@@ -240,9 +237,7 @@ jobs:
             update_env AUTH_SECRET "$AUTH_SECRET"
             update_env GOOGLE_CLIENT_ID "$GOOGLE_CLIENT_ID"
             update_env GOOGLE_CLIENT_SECRET "$GOOGLE_CLIENT_SECRET"
-            update_env ALLOWED_EMAIL "$ALLOWED_EMAIL"
-            update_env DISCORD_WEBHOOK_SIGNUP_URL "$DISCORD_WEBHOOK_SIGNUP_URL"
-            update_env DISCORD_WEBHOOK_LOGIN_URL "$DISCORD_WEBHOOK_LOGIN_URL"
+            update_env SIGNALY_WEBHOOK_LOGIN_URL "$SIGNALY_WEBHOOK_LOGIN_URL"
 
             echo "Installing production dependencies..."
             npm install --omit=dev --no-audit --prefer-offline
@@ -301,13 +296,13 @@ jobs:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
           OP_ENV_FILE: .github/deploy.env.tpl
 
-      - name: Notify Discord
+      - name: Signaly に通知
         env:
-          DISCORD_WEBHOOK_URL: ${{ env.DISCORD_CI_WEBHOOK_URL }}
-          NOTIFY_APP: Car Maintenance
+          SIGNALY_WEBHOOK_URL: ${{ env.SIGNALY_WEBHOOK_URL }}
+          NOTIFY_APP: Car Care
           NOTIFY_KIND: デプロイ
           NOTIFY_STATUS: ${{ steps.status.outputs.result }}
-        run: bash .github/scripts/discord-notify.sh
+        run: bash .github/scripts/signaly-notify.sh
 
   notify-release:
     runs-on: ubuntu-latest
@@ -326,11 +321,11 @@ jobs:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
           OP_ENV_FILE: .github/deploy.env.tpl
 
-      - name: Notify Discord
+      - name: Signaly に通知
         env:
-          DISCORD_WEBHOOK_URL: ${{ env.DISCORD_CI_WEBHOOK_URL }}
+          SIGNALY_WEBHOOK_URL: ${{ env.SIGNALY_WEBHOOK_URL }}
           NOTIFY_STATUS: ${{ needs.release.result }}
-          NOTIFY_APP: Car Maintenance
+          NOTIFY_APP: Car Care
           NOTIFY_KIND: リリース
           NOTIFY_VERSION: ${{ needs.tag.outputs.tag }}
-        run: bash .github/scripts/discord-notify.sh
+        run: bash .github/scripts/signaly-notify.sh

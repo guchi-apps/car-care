@@ -1,17 +1,17 @@
 # 1Password secret references for GitHub Actions deploy.
-# Vault: apps — Car Maintenance / DB / Server / githubaction-sshkey
+# Vault: apps — Car / DB / Server / githubaction-sshkey
 #
 # 初回セットアップ:
-#   1. apps ボールトに「Car Maintenance」アイテムを作成し、下記フィールドを登録
+#   1. apps ボールトに「Car」アイテムを作成し、下記フィールドを登録
 #      - target-dir … VPS 上のデプロイ先パス（例: /home/deploy/car-maintenance）
 #      - port       … アプリ待受ポート（例: 3104）
-#      - その他 Auth / DB 名 / Discord など
+#      - その他 Auth / DB 名 / Signaly など
 #   2. GitHub リポジトリ Secrets に OP_SERVICE_ACCOUNT_TOKEN を設定
 #   3. VPS で op signin 後 scripts/vps-bootstrap.sh（target-dir / port を 1Password から取得）
 #   4. main へマージでデプロイ実行
 #
 # 共通参照（他アプリと同じ）:
-#   Server, DB, githubaction-sshkey, discord_webhook
+#   Server, DB, githubaction-sshkey
 
 # SSH / デプロイ先
 SSH_PRIVATE_KEY=op://apps/githubaction-sshkey/private_key?ssh-format=openssh
@@ -33,9 +33,7 @@ AUTH_URL=op://apps/Car/auth-url
 AUTH_SECRET=op://apps/Car/auth-secret
 GOOGLE_CLIENT_ID=op://apps/Car/google-client-id
 GOOGLE_CLIENT_SECRET=op://apps/Car/google-client-secret
-ALLOWED_EMAIL=op://apps/Car/allowed-email
-DISCORD_WEBHOOK_SIGNUP_URL=op://apps/Car/discord-webhook-signup-url
-DISCORD_WEBHOOK_LOGIN_URL=op://apps/Car/discord-webhook-login-url
+SIGNALY_WEBHOOK_LOGIN_URL=op://apps/Car/login_webhook_url
 
-# CI / デプロイ通知（全アプリ共通）
-DISCORD_CI_WEBHOOK_URL=op://apps/discord_webhook/CI_URL
+# CI / デプロイ通知
+SIGNALY_WEBHOOK_URL=op://apps/Car/ci-webhook-url

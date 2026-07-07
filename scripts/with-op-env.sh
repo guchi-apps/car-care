@@ -18,32 +18,14 @@ if [[ ! -f "$ENV_FILE" ]]; then
   exit 1
 fi
 
-# next dev 実行時: ポート 3000 を自動解放してから起動
-if [[ "$*" == *"next dev"* ]]; then
-  if command -v ss >/dev/null 2>&1 && ss -tln | grep -q ":3000 "; then
-    echo "⚠  ポート 3000 を使用中のプロセスを停止します..." >&2
-    fuser -k 3000/tcp 2>/dev/null || true
-    sleep 1
-  fi
-fi
-
-# op run で DB 変数を注入 → DATABASE_URL を組み立て → コマンド実行
-# 開発時は AUTH_URL を export しない（リクエストのポートに合わせてアプリ側で設定）
-# DB_TARGET / DB_TUNNEL は本番 DB 確認用（with-op-prod-db.sh から渡される）
+# op run で DB 変数を注入 → DATABASE_URL を組み立て → コマンド実行（本番 DB 確認専用）
+# DB_TARGET / DB_TUNNEL は with-op-prod-db.sh から渡される
 exec op run --env-file="$ENV_FILE" -- bash -c '
   export DATABASE_URL
   export DB_TARGET="${DB_TARGET:-}"
   export DB_TUNNEL="${DB_TUNNEL:-}"
   export PROD_DB_LOCAL_PORT="${PROD_DB_LOCAL_PORT:-}"
-  export DEV_ALLOWED_ORIGINS="${DEV_ALLOWED_ORIGINS:-}"
   DATABASE_URL="$(bash "'"$ROOT"'/scripts/tsx.sh" "'"$ROOT"'/scripts/build-database-url.ts")"
   export DATABASE_URL
-  if [ "${NODE_ENV:-development}" = "production" ]; then
-    export AUTH_URL
-    AUTH_URL="$(bash "'"$ROOT"'/scripts/tsx.sh" "'"$ROOT"'/scripts/build-auth-url.ts")"
-    export AUTH_URL
-  else
-    unset AUTH_URL
-  fi
   exec "$@"
 ' bash "$@"

@@ -25,21 +25,21 @@ export default async function HomePage() {
   const session = await auth();
   const email = session?.user?.email;
   const userId = session?.user?.id;
-  const hasPasskey = email ? await hasRegisteredPasskeys(email) : false;
-  const vehicles = userId ? await listVehicles(userId) : [];
-  const activeVehicle = userId ? await getActiveVehicle(userId) : null;
 
-  const categories = userId ? await ensureMaintenanceCategoriesForUser(userId) : [];
+  const [hasPasskey, vehicles, activeVehicle, categories] = await Promise.all([
+    email ? hasRegisteredPasskeys(email) : Promise.resolve(false),
+    userId ? listVehicles(userId) : Promise.resolve([]),
+    userId ? getActiveVehicle(userId) : Promise.resolve(null),
+    userId ? ensureMaintenanceCategoriesForUser(userId) : Promise.resolve([]),
+  ]);
 
-  const fuelLogs =
+  const [fuelLogs, maintenanceLogs] =
     userId && activeVehicle
-      ? await listFuelLogsForVehicle(userId, activeVehicle.id)
-      : null;
-
-  const maintenanceLogs =
-    userId && activeVehicle
-      ? await listMaintenanceLogsForVehicle(userId, activeVehicle.id)
-      : null;
+      ? await Promise.all([
+          listFuelLogsForVehicle(userId, activeVehicle.id),
+          listMaintenanceLogsForVehicle(userId, activeVehicle.id),
+        ])
+      : [null, null];
 
   const clientMaintenanceLogs = maintenanceLogs
     ? serializeMaintenanceLogsForClient(maintenanceLogs)
@@ -79,7 +79,7 @@ export default async function HomePage() {
   return (
     <main className="flex min-h-full flex-1 flex-col">
       <AppHeader
-        title="Car Maintenance"
+        title="Car Care"
         subtitle="ダッシュボード"
         user={{
           name: session?.user?.name,

@@ -34,7 +34,7 @@ function LoginForm() {
             <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 text-2xl backdrop-blur-sm">
               🚗
             </div>
-            <h1 className="text-2xl font-bold text-white">Car Maintenance</h1>
+            <h1 className="text-2xl font-bold text-white">Car Care</h1>
             <p className="mt-1.5 text-sm text-blue-100">
               自家用車の維持管理アプリ
             </p>

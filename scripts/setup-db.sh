@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# 1Password から DB_NAME / DB_USER / DB_PASSWORD を取得して MySQL をセットアップ
+# .env.local の DB_NAME / DB_USER / DB_PASSWORD を使ってローカル MySQL をセットアップ（1Password 不要）
 #
 # 使い方:
-#   op signin
 #   npm run db:setup
 #
 # 前提: sudo mysql で root 接続できること（MySQL 起動済み）
@@ -11,7 +10,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-ENV_FILE="$ROOT/.env.op"
+ENV_FILE="$ROOT/.env.local"
+ENV_EXAMPLE="$ROOT/.env.local.example"
 
 escape_sql_string() {
   printf "%s" "$1" | sed "s/'/''/g"
@@ -29,7 +29,7 @@ validate_identifier() {
 run_setup() {
   for var in DB_NAME DB_USER DB_PASSWORD; do
     if [[ -z "${!var:-}" ]]; then
-      echo "Error: ${var} が 1Password から取得できません。.env.op を確認してください。" >&2
+      echo "Error: ${var} が .env.local に設定されていません。" >&2
       exit 1
     fi
   done
@@ -75,10 +75,10 @@ EOSQL
   [[ -S /run/mysqld/mysqld.sock ]] && socket="/run/mysqld/mysqld.sock"
 
   if mysql -u "$DB_USER" -p"$DB_PASSWORD" --socket="$socket" "$DB_NAME" -e "SELECT 1" >/dev/null 2>&1; then
-    echo "OK: データベース・ユーザー作成完了（1Password の認証情報と一致）"
+    echo "OK: データベース・ユーザー作成完了（.env.local の認証情報と一致）"
   else
-    echo "Error: MySQL ユーザーは作成しましたが、1Password の db-password で接続できません。" >&2
-    echo "  → 1Password の db-user / db-password / db-name を確認" >&2
+    echo "Error: MySQL ユーザーは作成しましたが、.env.local の DB_PASSWORD で接続できません。" >&2
+    echo "  → .env.local の DB_USER / DB_PASSWORD / DB_NAME を確認" >&2
     echo "  → 修正後、再度 npm run db:setup を実行" >&2
     exit 1
   fi
@@ -86,19 +86,15 @@ EOSQL
   echo "次: npm run db:migrate"
 }
 
-if [[ "${1:-}" == "--run" ]]; then
-  run_setup
-  exit 0
-fi
-
-if ! command -v op >/dev/null 2>&1; then
-  echo "Error: 1Password CLI (op) が見つかりません。" >&2
-  exit 1
-fi
-
 if [[ ! -f "$ENV_FILE" ]]; then
-  echo "Error: $ENV_FILE がありません。npm run env:init" >&2
+  echo "Error: $ENV_FILE がありません。" >&2
+  echo "  cp $ENV_EXAMPLE $ENV_FILE" >&2
   exit 1
 fi
 
-exec op run --env-file="$ENV_FILE" -- bash "$0" --run
+set -a
+# shellcheck source=/dev/null
+source "$ENV_FILE"
+set +a
+
+run_setup

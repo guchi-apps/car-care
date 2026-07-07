@@ -1,8 +1,8 @@
-# 仕様書 実装進捗（Car Maintenance）
+# 仕様書 実装進捗（Car Care）
 
 > **他 Agent 向け:** 本ファイルが仕様書（Discord通知機能追加版）に対する実装状況の正本です。  
 > 機能追加・デプロイ完了時は **必ず本ファイルを更新** してください。  
-> **最終更新:** 2026-06-24
+> **最終更新:** 2026-07-07
 
 ## ステータス凡例
 
@@ -23,9 +23,9 @@
 
 | レイヤー | 状態 |
 |----------|------|
-| 認証・Discord・ミドルウェア | ✅ |
+| 認証・Signaly・ミドルウェア | ✅ |
 | DB スキーマ（Prisma） | ✅ |
-| 1Password 開発環境 | ✅ |
+| ローカル開発環境（`.env.local`、1Password 不要） | ✅ |
 | PWA 雛形 | ⚠️ |
 | 給油 UI | ✅ |
 | メンテ・車両 UI | ✅ |
@@ -42,10 +42,9 @@
 | Next.js App Router + TypeScript + Tailwind | ✅ | プロジェクト全体 |
 | MySQL + Prisma | ✅ | `prisma/schema.prisma`, `prisma/migrations/` |
 | NextAuth (Auth.js) | ✅ | `src/auth.ts`, `src/auth.config.ts` |
-| Google OAuth | ✅ | `src/auth.ts` |
-| メール制限 (`ALLOWED_EMAIL`) | ✅ | `src/auth.config.ts` |
+| Google OAuth | ✅ | `src/auth.ts`（本番 / 開発で別クライアント。開発用は `.env.local`） |
 | WebAuthn / Passkey | ✅ | Provider + ログイン (`next-auth/webauthn`) + ホーム初回登録 (`passkey-register-card.tsx`) + 設定画面の登録・再設定 (`passkey-settings.tsx`) |
-| Discord Webhook（signup / login 2系統） | ✅ | `src/lib/discord.ts`, `src/auth.ts` events |
+| Signaly Webhook（ログイン通知） | ✅ | `src/lib/signaly.ts`, `src/auth.ts` events |
 | PWA | ⚠️ | `public/manifest.json`, `public/sw.js`, `public/icons/`, `app-bottom-nav.tsx`, `app-page.tsx` |
 | pm2 | ✅ | `ecosystem.config.js`（本番 PORT 3104 既定） |
 | GitHub Actions → VPS SSH デプロイ | ⚠️ | `.github/workflows/deploy.yml`（**1Password・VPS 初回設定後に検証**） |
@@ -70,15 +69,13 @@
 
 ## 3. 機能要件
 
-### ① 認証・アクセス制限 & Discord 通知
+### ① 認証 & Signaly 通知
 
 | 要件 | 状態 | 備考 |
 |------|------|------|
 | Google ログイン | ✅ | |
-| 許可外メール拒否 | ✅ | `ALLOWED_EMAIL` |
 | パスキー登録 → 2回目以降顔認証ログイン | ✅ | Google 初回ログイン後ホームで登録、設定画面で再設定、2回目以降 `next-auth/webauthn` でログイン |
-| Discord 新規登録通知 | ✅ | `events.createUser` → `DISCORD_WEBHOOK_SIGNUP_URL` |
-| Discord ログイン通知 | ✅ | `events.signIn`（`!isNewUser`）→ `DISCORD_WEBHOOK_LOGIN_URL` |
+| Signaly ログイン通知（新規登録・既存ログイン共通） | ✅ | `events.signIn` → `SIGNALY_WEBHOOK_LOGIN_URL`（Discord から移行済み） |
 | 未ログイン時 middleware ガード | ✅ | `src/middleware.ts` |
 
 ### ② 給油・燃費可視化 & ガソリンスタンド検索
@@ -129,7 +126,7 @@
 | `develop` で開発 → `main` で安定版 | ✅ | `develop` push 済み (`origin/develop`) |
 | `main` マージ時 GitHub Actions デプロイ | ⚠️ | workflow 実装済み。1Password / VPS 設定後に `main` push で検証 |
 | `main` マージ時 Git tag / GitHub Release | ⚠️ | `package.json` version から `v*` タグ自動作成 + Release（Portfolio 同様） |
-| CI Discord 通知 | ✅ | `.github/workflows/ci.yml`（失敗時 + `main` 向け PR のみ） |
+| CI Signaly 通知 | ✅ | `.github/workflows/ci.yml`（失敗時 + `main` 向け PR のみ、Discord から Signaly へ移行済み） |
 
 デプロイ手順（workflow）: tag → build → deploy →（成功時のみ）release。build で `npm run build:ci` → tar 転送 → VPS で `.env` 同期 → `prisma migrate deploy` → `pm2 reload`
 
@@ -138,27 +135,32 @@
 | 要件 | 状態 | 備考 |
 |------|------|------|
 | 秘密情報をリポジトリに含めない | ✅ | `.gitignore`, `.env.example` |
-| 1Password CLI 開発注入 | ✅ | `.env.op`, `scripts/with-op-env.sh` |
-| 開発 DB | ✅ | `127.0.0.1:3306` 固定。`npm run db:setup` |
-| 開発環境から本番 DB 確認 | ✅ | `DB_TARGET=production`, `scripts/with-op-prod-db.sh`, `scripts/prod-db-tunnel.sh` |
+| ローカル開発は 1Password 不要 | ✅ | `.env.local`（DB・Auth・Google OAuth・通知）、`scripts/with-local-env.sh`（#21 で移行） |
+| 開発 DB | ✅ | `127.0.0.1:3306` 固定。`npm run db:setup`（`.env.local` の DB_USER/PASSWORD/NAME で作成） |
+| 開発環境から本番 DB 確認（1Password 使用） | ✅ | `DB_TARGET=production`, `.env.op`, `scripts/with-op-prod-db.sh`, `scripts/prod-db-tunnel.sh` |
 | 本番 Secrets → GitHub Actions / pm2 | ⚠️ | `.github/deploy.env.tpl` 定義済み。1Password 登録・`OP_SERVICE_ACCOUNT_TOKEN` 要設定 |
 
-### 環境変数（1Password / 本番）
+### 環境変数（`.env.local` / ローカル開発、1Password 不要）
 
-| 変数 | 用途 | 開発 | 本番 |
-|------|------|------|------|
-| `DB_USER`, `DB_PASSWORD`, `DB_NAME` | DB 認証 | ✅ | 要設定 |
-| `DB_HOST`, `DB_PORT` | 本番 DB | —（`db:*:prod` で使用） | 要設定 |
-| `SSH_HOST`, `SSH_USER`, `SSH_PORT` | 本番 DB SSH トンネル | 任意 | — |
-| `AUTH_SECRET` | NextAuth | ✅ | 要設定 |
-| `AUTH_URL` / `AUTH_URL_DEV` | 公開 URL | ✅ | 要設定 |
-| `GOOGLE_CLIENT_ID/SECRET` | OAuth | ✅ | 要設定 |
-| `ALLOWED_EMAIL` | アクセス制限 | ✅ | 要設定 |
-| `DISCORD_WEBHOOK_SIGNUP_URL` | 通知 | ✅ | 要設定 |
-| `DISCORD_WEBHOOK_LOGIN_URL` | 通知 | ✅ | 要設定 |
-| `TARGET_DIR` (`target-dir`) | VPS デプロイ先パス | — | 1Password `Car Maintenance` |
-| `PORT` (`port`) | 待受ポート | — | 1Password `Car Maintenance` |
-| `OP_SERVICE_ACCOUNT_TOKEN` | GitHub Actions → 1Password | — | 要設定 |
+| 変数 | 用途 | 備考 |
+|------|------|------|
+| `DB_NAME`, `DB_USER`, `DB_PASSWORD` | ローカル DB 認証 | 値は自由。`npm run db:setup` でユーザー・DB 作成 |
+| `AUTH_SECRET` | NextAuth | 値は自由（例: `openssl rand -hex 32`） |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth（開発用クライアント） | 本番用（1Password `apps/Car`）とは別クライアント（#21） |
+| `SIGNALY_WEBHOOK_LOGIN_URL` | 通知（新規登録・ログイン共通） | 任意。未設定なら通知をスキップ |
+
+### 環境変数（1Password `apps/Car` / 本番）
+
+| 変数 | 用途 |
+|------|------|
+| `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_HOST`, `DB_PORT` | DB 認証・接続先（ローカルから本番 DB 確認する場合は `.env.op` も使用） |
+| `SSH_HOST`, `SSH_USER`, `SSH_PORT` | 本番 DB SSH トンネル |
+| `AUTH_SECRET` | NextAuth |
+| `AUTH_URL` | 公開 URL |
+| `SIGNALY_WEBHOOK_LOGIN_URL` | 通知（新規登録・ログイン共通） |
+| `TARGET_DIR` (`target-dir`) | VPS デプロイ先パス |
+| `PORT` (`port`) | 待受ポート |
+| `OP_SERVICE_ACCOUNT_TOKEN` | GitHub Actions → 1Password |
 
 ---
 
@@ -168,7 +170,7 @@
 |---|------|------|
 | 1 | PWA `manifest.json` 雛形 | ✅ |
 | 2 | Prisma スキーマ（MySQL + NextAuth + WebAuthn） | ✅ |
-| 3 | Discord Webhook 通知基盤 | ✅ |
+| 3 | Webhook 通知基盤（Signaly） | ✅ |
 | 4 | `ecosystem.config.js` | ✅ |
 | — | `develop` ブランチで開発 | ✅ |
 
@@ -181,9 +183,10 @@
 車両:     src/app/vehicles/, src/components/vehicle-form.tsx, src/components/vehicle-list.tsx, src/lib/vehicles.ts
 給油:     src/app/(app)/fuel/, src/components/fuel-*.tsx, src/lib/fuel-*.ts, src/app/api/gas-stations/route.ts
 メンテ:   src/app/(app)/maintenance/, src/components/maintenance-*.tsx, src/lib/maintenance-*.ts
-Discord:  src/lib/discord.ts
+Signaly:  src/lib/signaly.ts
 DB:       prisma/schema.prisma, src/lib/prisma.ts, src/lib/database-url.ts
-1Password: .env.op.example, scripts/with-op-env.sh, scripts/with-op-prod-db.sh, scripts/prod-db-tunnel.sh, scripts/setup-db.sh
+ローカル環境: .env.local.example, scripts/with-local-env.sh, scripts/setup-db.sh（1Password 不要）
+1Password（本番 DB 確認用）: .env.op.example, scripts/with-op-env.sh, scripts/with-op-prod-db.sh, scripts/prod-db-tunnel.sh
 PWA:      public/manifest.json, public/sw.js, src/components/app-bottom-nav.tsx, src/components/app-page.tsx
 DevOps:   ecosystem.config.js, .github/workflows/ci.yml, .github/workflows/deploy.yml, .github/workflows/release.yml, .github/deploy.env.tpl, .github/ci.env.tpl, scripts/construct-database-url.sh, scripts/vps-bootstrap.sh
 進捗正本: docs/SPEC_PROGRESS.md  ← このファイル
@@ -193,7 +196,7 @@ DevOps:   ecosystem.config.js, .github/workflows/ci.yml, .github/workflows/deplo
 
 | コマンド | 用途 |
 |----------|------|
-| `npm run dev` | 開発サーバー（1Password 経由） |
+| `npm run dev` | 開発サーバー（`.env.local`、1Password 不要） |
 | `npm run db:setup` | ローカル MySQL に DB/ユーザー作成 |
 | `npm run db:migrate` | マイグレーション適用 (`migrate deploy`) |
 | `npm run db:migrate:dev` | 新規マイグレーション作成 (`migrate dev`) |
@@ -208,7 +211,7 @@ DevOps:   ecosystem.config.js, .github/workflows/ci.yml, .github/workflows/deplo
 
 ## 次の推奨タスク（優先順）
 
-1. **本番デプロイ初回設定**（1Password `Car Maintenance` 登録、VPS `scripts/vps-bootstrap.sh`、`main` マージ）
+1. **本番デプロイ初回設定**（1Password `apps/Car` 登録、VPS `scripts/vps-bootstrap.sh`、`main` マージ）
 
 ---
 
@@ -216,6 +219,14 @@ DevOps:   ecosystem.config.js, .github/workflows/ci.yml, .github/workflows/deplo
 
 | 日付 | 内容 |
 |------|------|
+| 2026-07-07 | ローカル開発を 1Password 不要に変更。DB・AUTH_SECRET・Signaly ログイン通知も `.env.local` で管理し、`scripts/with-local-env.sh` を新設（本番 DB 確認は引き続き `.env.op` / 1Password を使用）（#21） |
+| 2026-07-07 | Google OAuth を本番・開発で別クライアントに分離。開発用 Client ID/Secret は 1Password ではなく `.env.local`（`.env.local.example` 追加）で管理（#21） |
+| 2026-07-07 | Google ログインのみのため許可メールアドレス制限（`ALLOWED_EMAIL`）を廃止 |
+| 2026-07-07 | 新規登録・ログイン通知を1つの Signaly ログイン通知に統合（`notifySignalySignup` を削除し `events.signIn` に一本化） |
+| 2026-07-07 | アプリ名称を Car Maintenance → Car Care に変更（README / manifest / UI 表記） |
+| 2026-07-07 | 新規登録・ログイン通知を Discord から Signaly へ移行（`src/lib/discord.ts` → `src/lib/signaly.ts`、`SIGNALY_WEBHOOK_LOGIN_URL`） |
+| 2026-07-07 | 1Password 参照を `apps` ボールト「Car」アイテムに統一（`.env.op.example` 等の `Private/Car Maintenance` 表記を修正） |
+| 2026-07-07 | 不要になった `.cursor/rules`（Cursor 向けシンボリックリンク）を削除（AI エディタは Claude Code に統一済み） |
 | 2026-06-25 | メンテナンスのカテゴリ色をグラフ凡例と整備履歴で統一 |
 | 2026-06-25 | 整備履歴にカテゴリフィルターを追加（タップで絞り込み・再タップで全件表示） |
 | 2026-06-25 | メンテナンス費用の 0 円登録を許可（車検などと同時作業の記録用） |
