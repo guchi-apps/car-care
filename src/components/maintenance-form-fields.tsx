@@ -41,7 +41,7 @@ export function MaintenanceFormFields({
               ? formatDateForInput(maintenanceLog.date)
               : formatDateForInput(new Date())
           }
-          className="app-input"
+          className="app-input-date"
         />
       </div>
 

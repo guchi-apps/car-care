@@ -32,7 +32,7 @@ export function AppSidebar({ open, onClose }: AppSidebarProps) {
       >
         <div className="border-b border-blue-800/20 bg-gradient-to-r from-blue-800 via-blue-700 to-blue-600 px-4 py-5 dark:border-slate-700/50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
           <p className="text-xs font-medium tracking-wide text-blue-100/80 uppercase">
-            Car Maintenance
+            Car Care
           </p>
           <p className="mt-0.5 text-sm font-semibold text-white">メニュー</p>
         </div>

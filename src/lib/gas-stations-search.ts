@@ -38,7 +38,7 @@ const OVERPASS_ENDPOINTS = [
   "https://overpass.kumi.systems/api/interpreter",
 ] as const;
 
-const OVERPASS_USER_AGENT = "CarMaintenanceApp/1.0 (car-maintenance)";
+const OVERPASS_USER_AGENT = "CarCareApp/1.0 (car-care)";
 
 function haversineDistanceMeters(
   lat1: number,

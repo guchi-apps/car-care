@@ -24,12 +24,12 @@ function formatJstTimestamp(): string {
   });
 }
 
-async function sendDiscordWebhook(
+async function sendSignalyWebhook(
   webhookUrl: string | undefined,
   content: string,
 ): Promise<void> {
   if (!webhookUrl) {
-    console.warn("[discord] Webhook URL is not configured; skipping notification.");
+    console.warn("[signaly] Webhook URL is not configured; skipping notification.");
     return;
   }
 
@@ -42,11 +42,11 @@ async function sendDiscordWebhook(
 
     if (!response.ok) {
       console.error(
-        `[discord] Webhook failed: ${response.status} ${response.statusText}`,
+        `[signaly] Webhook failed: ${response.status} ${response.statusText}`,
       );
     }
   } catch (error) {
-    console.error("[discord] Failed to send webhook:", error);
+    console.error("[signaly] Failed to send webhook:", error);
   }
 }
 
@@ -56,7 +56,7 @@ function formatProviderLabel(provider?: string | null) {
   return provider ?? "不明";
 }
 
-export async function notifyDiscordSignup(options: {
+export async function notifySignalyLogin(options: {
   email?: string | null;
   name?: string | null;
   provider?: string | null;
@@ -65,28 +65,7 @@ export async function notifyDiscordSignup(options: {
   const timestamp = formatJstTimestamp();
 
   const content = [
-    "📝 Car Maintenance に新規登録がありました",
-    `**日時**: ${timestamp} (JST)`,
-    `**メール**: ${options.email ?? "不明"}`,
-    `**名前**: ${options.name ?? "不明"}`,
-    `**登録方式**: ${formatProviderLabel(options.provider)}`,
-    `**IP**: ${clientIp}`,
-    `**User-Agent**: ${userAgent}`,
-  ].join("\n");
-
-  await sendDiscordWebhook(process.env.DISCORD_WEBHOOK_SIGNUP_URL, content);
-}
-
-export async function notifyDiscordLogin(options: {
-  email?: string | null;
-  name?: string | null;
-  provider?: string | null;
-}): Promise<void> {
-  const { clientIp, userAgent } = await getClientInfo();
-  const timestamp = formatJstTimestamp();
-
-  const content = [
-    "🔐 Car Maintenance にログインしました",
+    "🔐 Car Care にログインしました",
     `**日時**: ${timestamp} (JST)`,
     `**メール**: ${options.email ?? "不明"}`,
     `**名前**: ${options.name ?? "不明"}`,
@@ -95,5 +74,5 @@ export async function notifyDiscordLogin(options: {
     `**User-Agent**: ${userAgent}`,
   ].join("\n");
 
-  await sendDiscordWebhook(process.env.DISCORD_WEBHOOK_LOGIN_URL, content);
+  await sendSignalyWebhook(process.env.SIGNALY_WEBHOOK_LOGIN_URL, content);
 }

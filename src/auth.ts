@@ -5,7 +5,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 
 import { applyTokenToSession, authConfig } from "@/auth.config";
 import { applyAuthUrlEnv } from "@/lib/auth-url";
-import { notifyDiscordLogin, notifyDiscordSignup } from "@/lib/discord";
+import { notifySignalyLogin } from "@/lib/signaly";
 import { prisma } from "@/lib/prisma";
 
 applyAuthUrlEnv();
@@ -68,22 +68,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   events: {
-    async createUser({ user }) {
-      if (user.email) {
-        await notifyDiscordSignup({
-          email: user.email,
-          name: user.name,
-          provider: "google",
-        });
-      }
-    },
     linkAccount({ account }) {
       if (account.provider === "passkey") {
         skipNextPasskeyLoginNotification = true;
       }
     },
-    async signIn({ user, account, isNewUser }) {
-      if (user.email && !isNewUser) {
+    async signIn({ user, account }) {
+      if (user.email) {
         if (
           account?.provider === "passkey" &&
           skipNextPasskeyLoginNotification
@@ -92,7 +83,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return;
         }
 
-        await notifyDiscordLogin({
+        await notifySignalyLogin({
           email: user.email,
           name: user.name,
           provider: account?.provider,

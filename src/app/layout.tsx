@@ -6,13 +6,13 @@ import { ServiceWorkerRegister } from "@/components/service-worker-register";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Car Maintenance",
+  title: "Car Care",
   description: "自家用車の維持管理アプリ（給油・メンテナンス・コスト管理）",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "CarCare",
+    title: "Car Care",
   },
   icons: {
     icon: [

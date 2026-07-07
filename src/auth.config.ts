@@ -2,14 +2,6 @@ import type { NextAuthConfig } from "next-auth";
 import type { Session } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 
-function isEmailAllowed(email: string | null | undefined): boolean {
-  const allowedEmail = process.env.ALLOWED_EMAIL;
-  if (!allowedEmail || !email) {
-    return false;
-  }
-  return email.toLowerCase() === allowedEmail.toLowerCase();
-}
-
 export function applyTokenToSession(session: Session, token: JWT): Session {
   if (session.user) {
     session.user.id = token.id as string;
@@ -26,9 +18,6 @@ export const authConfig = {
     error: "/login",
   },
   callbacks: {
-    signIn({ user }) {
-      return isEmailAllowed(user.email);
-    },
     jwt({ token, user }) {
       if (user) {
         token.id = user.id;
