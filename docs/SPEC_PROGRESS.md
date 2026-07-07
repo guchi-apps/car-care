@@ -25,7 +25,7 @@
 |----------|------|
 | 認証・Signaly・ミドルウェア | ✅ |
 | DB スキーマ（Prisma） | ✅ |
-| 1Password 開発環境 | ✅ |
+| ローカル開発環境（`.env.local`、1Password 不要） | ✅ |
 | PWA 雛形 | ⚠️ |
 | 給油 UI | ✅ |
 | メンテ・車両 UI | ✅ |
@@ -135,30 +135,32 @@
 | 要件 | 状態 | 備考 |
 |------|------|------|
 | 秘密情報をリポジトリに含めない | ✅ | `.gitignore`, `.env.example` |
-| 1Password CLI 開発注入 | ✅ | `.env.op`, `scripts/with-op-env.sh` |
-| 開発 DB | ✅ | `127.0.0.1:3306` 固定。`npm run db:setup` |
-| 開発環境から本番 DB 確認 | ✅ | `DB_TARGET=production`, `scripts/with-op-prod-db.sh`, `scripts/prod-db-tunnel.sh` |
+| ローカル開発は 1Password 不要 | ✅ | `.env.local`（DB・Auth・Google OAuth・通知）、`scripts/with-local-env.sh`（#21 で移行） |
+| 開発 DB | ✅ | `127.0.0.1:3306` 固定。`npm run db:setup`（`.env.local` の DB_USER/PASSWORD/NAME で作成） |
+| 開発環境から本番 DB 確認（1Password 使用） | ✅ | `DB_TARGET=production`, `.env.op`, `scripts/with-op-prod-db.sh`, `scripts/prod-db-tunnel.sh` |
 | 本番 Secrets → GitHub Actions / pm2 | ⚠️ | `.github/deploy.env.tpl` 定義済み。1Password 登録・`OP_SERVICE_ACCOUNT_TOKEN` 要設定 |
 
-### 環境変数（1Password / 本番）
-
-| 変数 | 用途 | 開発 | 本番 |
-|------|------|------|------|
-| `DB_USER`, `DB_PASSWORD`, `DB_NAME` | DB 認証 | ✅ | 要設定 |
-| `DB_HOST`, `DB_PORT` | 本番 DB | —（`db:*:prod` で使用） | 要設定 |
-| `SSH_HOST`, `SSH_USER`, `SSH_PORT` | 本番 DB SSH トンネル | 任意 | — |
-| `AUTH_SECRET` | NextAuth | ✅ | 要設定 |
-| `AUTH_URL` / `AUTH_URL_DEV` | 公開 URL | ✅ | 要設定 |
-| `SIGNALY_WEBHOOK_LOGIN_URL` | 通知（新規登録・ログイン共通） | ✅ | 要設定 |
-| `TARGET_DIR` (`target-dir`) | VPS デプロイ先パス | — | 1Password `apps/Car` |
-| `PORT` (`port`) | 待受ポート | — | 1Password `apps/Car` |
-| `OP_SERVICE_ACCOUNT_TOKEN` | GitHub Actions → 1Password | — | 要設定 |
-
-### 環境変数（`.env.local` / 開発のみ）
+### 環境変数（`.env.local` / ローカル開発、1Password 不要）
 
 | 変数 | 用途 | 備考 |
 |------|------|------|
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth（開発用クライアント） | 本番用（1Password `apps/Car`）とは別クライアント。`.env.local.example` 参照（#21） |
+| `DB_NAME`, `DB_USER`, `DB_PASSWORD` | ローカル DB 認証 | 値は自由。`npm run db:setup` でユーザー・DB 作成 |
+| `AUTH_SECRET` | NextAuth | 値は自由（例: `openssl rand -hex 32`） |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth（開発用クライアント） | 本番用（1Password `apps/Car`）とは別クライアント（#21） |
+| `SIGNALY_WEBHOOK_LOGIN_URL` | 通知（新規登録・ログイン共通） | 任意。未設定なら通知をスキップ |
+
+### 環境変数（1Password `apps/Car` / 本番）
+
+| 変数 | 用途 |
+|------|------|
+| `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_HOST`, `DB_PORT` | DB 認証・接続先（ローカルから本番 DB 確認する場合は `.env.op` も使用） |
+| `SSH_HOST`, `SSH_USER`, `SSH_PORT` | 本番 DB SSH トンネル |
+| `AUTH_SECRET` | NextAuth |
+| `AUTH_URL` | 公開 URL |
+| `SIGNALY_WEBHOOK_LOGIN_URL` | 通知（新規登録・ログイン共通） |
+| `TARGET_DIR` (`target-dir`) | VPS デプロイ先パス |
+| `PORT` (`port`) | 待受ポート |
+| `OP_SERVICE_ACCOUNT_TOKEN` | GitHub Actions → 1Password |
 
 ---
 
@@ -183,8 +185,8 @@
 メンテ:   src/app/(app)/maintenance/, src/components/maintenance-*.tsx, src/lib/maintenance-*.ts
 Signaly:  src/lib/signaly.ts
 DB:       prisma/schema.prisma, src/lib/prisma.ts, src/lib/database-url.ts
-1Password: .env.op.example, scripts/with-op-env.sh, scripts/with-op-prod-db.sh, scripts/prod-db-tunnel.sh, scripts/setup-db.sh
-開発用 OAuth: .env.local.example（Google Client ID/Secret、本番とは別クライアント）
+ローカル環境: .env.local.example, scripts/with-local-env.sh, scripts/setup-db.sh（1Password 不要）
+1Password（本番 DB 確認用）: .env.op.example, scripts/with-op-env.sh, scripts/with-op-prod-db.sh, scripts/prod-db-tunnel.sh
 PWA:      public/manifest.json, public/sw.js, src/components/app-bottom-nav.tsx, src/components/app-page.tsx
 DevOps:   ecosystem.config.js, .github/workflows/ci.yml, .github/workflows/deploy.yml, .github/workflows/release.yml, .github/deploy.env.tpl, .github/ci.env.tpl, scripts/construct-database-url.sh, scripts/vps-bootstrap.sh
 進捗正本: docs/SPEC_PROGRESS.md  ← このファイル
@@ -194,7 +196,7 @@ DevOps:   ecosystem.config.js, .github/workflows/ci.yml, .github/workflows/deplo
 
 | コマンド | 用途 |
 |----------|------|
-| `npm run dev` | 開発サーバー（1Password 経由） |
+| `npm run dev` | 開発サーバー（`.env.local`、1Password 不要） |
 | `npm run db:setup` | ローカル MySQL に DB/ユーザー作成 |
 | `npm run db:migrate` | マイグレーション適用 (`migrate deploy`) |
 | `npm run db:migrate:dev` | 新規マイグレーション作成 (`migrate dev`) |
@@ -217,6 +219,7 @@ DevOps:   ecosystem.config.js, .github/workflows/ci.yml, .github/workflows/deplo
 
 | 日付 | 内容 |
 |------|------|
+| 2026-07-07 | ローカル開発を 1Password 不要に変更。DB・AUTH_SECRET・Signaly ログイン通知も `.env.local` で管理し、`scripts/with-local-env.sh` を新設（本番 DB 確認は引き続き `.env.op` / 1Password を使用）（#21） |
 | 2026-07-07 | Google OAuth を本番・開発で別クライアントに分離。開発用 Client ID/Secret は 1Password ではなく `.env.local`（`.env.local.example` 追加）で管理（#21） |
 | 2026-07-07 | Google ログインのみのため許可メールアドレス制限（`ALLOWED_EMAIL`）を廃止 |
 | 2026-07-07 | 新規登録・ログイン通知を1つの Signaly ログイン通知に統合（`notifySignalySignup` を削除し `events.signIn` に一本化） |

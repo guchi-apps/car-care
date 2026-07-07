@@ -8,7 +8,7 @@
 
 | 機能 | 説明 |
 |------|------|
-| 認証 | Google ログイン、パスキー（WebAuthn）、許可メールアドレスによるアクセス制限 |
+| 認証 | Google ログイン、パスキー（WebAuthn） |
 | ホーム | メンテアラート / ようこそ表示、給油・メンテのクイック入力、今月・先月の維持費サマリー |
 | 車両管理 | 車両の登録・編集・削除、アクティブ車両の切り替え（複数台対応） |
 | 給油記録 | 入力・一覧・編集・削除、燃費ダッシュボード（燃費・単価・月別走行距離グラフ）、周辺ガソリンスタンド検索、登録店舗の距離順表示 |
@@ -26,15 +26,15 @@
 - **認証:** NextAuth.js（Auth.js）— Google OAuth、WebAuthn
 - **データベース:** MySQL + Prisma 7
 - **地図:** Leaflet + OpenStreetMap（Overpass API）
-- **機密情報:** 1Password CLI（`.env.op`）
+- **機密情報:** ローカル開発は `.env.local`（1Password 不要）、本番デプロイ・本番 DB 確認は 1Password CLI（`.env.op`）
 - **本番運用:** VPS + Apache リバースプロキシ + pm2、GitHub Actions による CI/CD
 
 ## 必要条件
 
 - Node.js **20.19.0 以上**（[`.nvmrc`](./.nvmrc) 参照）
 - MySQL（開発時はローカル `127.0.0.1:3306`）
-- [1Password CLI](https://developer.1password.com/docs/cli/)（`op` コマンド）
 - Google OAuth クライアント（ログイン用。**本番用とは別に開発用クライアントを作成**）
+- [1Password CLI](https://developer.1password.com/docs/cli/)（`op` コマンド。本番デプロイ・本番 DB 確認時のみ必要）
 
 ## セットアップ
 
@@ -44,31 +44,24 @@
 npm install
 ```
 
-### 2. 環境変数（1Password + .env.local）
+### 2. 環境変数（.env.local、1Password 不要）
 
-DB・Auth・通知などの秘密情報はリポジトリに含めず、1Password 経由で注入します。
-
-```bash
-npm run env:init          # .env.op.example → .env.op をコピー
-# .env.op 内の op:// パスを自分の Vault / アイテム名に合わせて編集
-op signin
-```
-
-1Password の apps ボールト「Car」アイテムに登録するフィールド一覧は [`.env.example`](./.env.example) を参照してください。
-
-Google OAuth の Client ID / Secret のみ、本番と開発で別クライアントを使う想定のため 1Password ではなく `.env.local` で管理します。
+ローカル開発の秘密情報（DB・Auth・Google OAuth・通知）はすべて `.env.local` に平文で保存します（`.gitignore` 済みでコミットされません）。1Password は本番デプロイと本番 DB 確認にのみ使用します。
 
 ```bash
 cp .env.local.example .env.local
-# Google Cloud Console で開発用 OAuth クライアントを作成し、Client ID / Secret を .env.local に設定
+# DB_NAME / DB_USER / DB_PASSWORD, AUTH_SECRET は自由な値で OK
 ```
+
+Google Cloud Console で **開発用**（本番とは別）の OAuth クライアントを作成し、Client ID / Secret を `.env.local` に設定します。承認済みリダイレクト URI に `http://localhost:3000/api/auth/callback/google` を追加してください。
+
+`SIGNALY_WEBHOOK_LOGIN_URL` は任意です（未設定ならログイン通知をスキップします）。フィールド一覧は [`.env.local.example`](./.env.local.example) を参照してください。
 
 ### 3. データベース
 
 ```bash
 sudo service mysql start   # MySQL が未起動の場合
-op signin
-npm run db:setup           # DB・ユーザーを作成
+npm run db:setup           # .env.local の値で DB・ユーザーを作成
 npm run db:migrate         # マイグレーション適用
 npm run db:check           # 接続確認
 ```
@@ -78,7 +71,6 @@ npm run db:check           # 接続確認
 ### 4. 開発サーバー起動
 
 ```bash
-op signin
 npm run dev
 ```
 
@@ -238,8 +230,8 @@ docs/              # 仕様・進捗ドキュメント
 | [`docs/SPEC_PROGRESS.md`](./docs/SPEC_PROGRESS.md) | 仕様書に対する実装進捗（正本） |
 | [`AGENTS.md`](./AGENTS.md) | AI Agent 向け開発ガイド |
 | [`.env.example`](./.env.example) | 環境変数フィールド一覧 |
-| [`.env.op.example`](./.env.op.example) | 1Password CLI 設定テンプレート |
-| [`.env.local.example`](./.env.local.example) | 開発用 Google OAuth クライアント設定テンプレート |
+| [`.env.local.example`](./.env.local.example) | ローカル開発用環境変数テンプレート（1Password 不要） |
+| [`.env.op.example`](./.env.op.example) | 1Password CLI 設定テンプレート（本番 DB 確認用） |
 
 ## ライセンス
 

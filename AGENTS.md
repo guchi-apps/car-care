@@ -20,8 +20,15 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ## 開発起動
 
+初回のみ `.env.local` を用意する（1Password 不要。`.env.local.example` 参照）:
+
 ```bash
-op signin
+cp .env.local.example .env.local
+# DB_NAME / DB_USER / DB_PASSWORD / AUTH_SECRET / GOOGLE_CLIENT_ID・SECRET を設定
+npm run db:setup && npm run db:migrate
+```
+
+```bash
 npm run dev
 ```
 
@@ -36,7 +43,7 @@ powershell -ExecutionPolicy Bypass -File scripts/wsl-port-forward.ps1
 - Google ログイン: 開発用 OAuth クライアント（本番とは別。`.env.local` で管理）に `http://<LAN-IP>.sslip.io:3000/api/auth/callback/google` を追加（生 IP は Google が拒否する）
 - パスキー: HTTP + LAN IP では不可（Google ログインを利用）
 
-環境変数は 1Password CLI（`.env.op`）経由。Google OAuth の Client ID / Secret のみ `.env.local`（`.env.local.example` 参照）。詳細は `.env.example` を参照。
+環境変数はローカル開発では `.env.local`（1Password 不要）。1Password（`.env.op`）は本番デプロイ・本番 DB 確認にのみ使用する。詳細は `.env.example` を参照。
 
 ## 本番 DB のデータ確認（開発環境）
 
