@@ -27,6 +27,8 @@ DB_PASSWORD=op://apps/DB/db-password
 DB_HOST=op://apps/DB/db-host
 DB_PORT=op://apps/DB/db-port
 DB_NAME=op://apps/Car/db-name
+MIGRATE_DB_USER=op://apps/DB/migrate-user
+MIGRATE_DB_PASSWORD=op://apps/DB/migrate-password
 
 # Auth / App
 AUTH_URL=op://apps/Car/auth-url
