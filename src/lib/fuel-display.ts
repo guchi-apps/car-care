@@ -36,12 +36,12 @@ export function formatDistanceSinceLastFill(km: number): string {
   return `前回から ${value} km`;
 }
 
-export function formatDistanceKm(km: number): string {
-  if (km < 1000) {
-    return `${Math.round(km)} m`;
+export function formatDistanceMeters(meters: number): string {
+  if (meters < 1000) {
+    return `${Math.round(meters)} m`;
   }
 
-  return `${(km / 1000).toLocaleString("ja-JP", {
+  return `${(meters / 1000).toLocaleString("ja-JP", {
     minimumFractionDigits: 1,
     maximumFractionDigits: 1,
   })} km`;

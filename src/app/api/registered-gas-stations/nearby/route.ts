@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { formatDistanceKm } from "@/lib/fuel-display";
+import { formatDistanceMeters } from "@/lib/fuel-display";
 import { lookupGasStationsByOsmIds } from "@/lib/gas-stations-search";
 import { prisma } from "@/lib/prisma";
 import { listRegisteredGasStationsForUser } from "@/lib/registered-gas-stations";
@@ -105,7 +105,7 @@ export async function GET(request: Request) {
       return {
         ...base,
         distanceMeters,
-        distanceLabel: formatDistanceKm(distanceMeters),
+        distanceLabel: formatDistanceMeters(distanceMeters),
         isNearby: distanceMeters <= 100,
       };
     }),

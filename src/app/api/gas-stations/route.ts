@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { formatDistanceKm } from "@/lib/fuel-display";
+import { formatDistanceMeters } from "@/lib/fuel-display";
 import { searchNearbyGasStations, lookupGasStationByOsmId } from "@/lib/gas-stations-search";
 
 export type GasStationResult = {
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
       return Response.json({
         station: {
           ...station,
-          distanceLabel: formatDistanceKm(station.distanceMeters),
+          distanceLabel: formatDistanceMeters(station.distanceMeters),
         },
       });
     } catch {
@@ -87,7 +87,7 @@ export async function GET(request: Request) {
     return Response.json({
       stations: stations.map((station) => ({
         ...station,
-        distanceLabel: formatDistanceKm(station.distanceMeters),
+        distanceLabel: formatDistanceMeters(station.distanceMeters),
       })),
     });
   } catch {
