@@ -50,3 +50,7 @@ next-env.d.ts
 
 # deploy (server-specific Apache vhost)
 deploy/apache-vhost.local.conf
+
+# claude-issue-dispatch.yml が無人実行のたびにcheckoutする（リポジトリ管理外）
+/.shared-context/
+/.shared-prompts/
