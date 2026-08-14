@@ -95,7 +95,8 @@ powershell -ExecutionPolicy Bypass -File scripts/wsl-port-forward.ps1
 | コマンド | 用途 |
 |----------|------|
 | `npm run dev` | 開発サーバー起動 |
-| `npm run build` | 本番ビルド |
+| `npm run build` | 本番ビルド（ローカルの `.env` を読む） |
+| `npm run build:ci` | 本番ビルド（環境変数を外から与える。CI・無人実行はこちら） |
 | `npm run start` | 本番モードで起動 |
 | `npm run lint` | ESLint |
 | `npm run env:check` | 環境変数の確認 |
