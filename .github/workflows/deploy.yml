@@ -107,7 +107,6 @@ jobs:
       GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
       SIGNALY_WEBHOOK_URL: ${{ secrets.SIGNALY_WEBHOOK_URL }}
       SIGNALY_WEBHOOK_LOGIN_URL: ${{ secrets.SIGNALY_WEBHOOK_LOGIN_URL }}
-      PORT: ${{ vars.PORT }}
       AUTH_URL: ${{ vars.AUTH_URL }}
 
     steps:
@@ -187,7 +186,6 @@ jobs:
       GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
       SIGNALY_WEBHOOK_URL: ${{ secrets.SIGNALY_WEBHOOK_URL }}
       SIGNALY_WEBHOOK_LOGIN_URL: ${{ secrets.SIGNALY_WEBHOOK_LOGIN_URL }}
-      PORT: ${{ vars.PORT }}
       AUTH_URL: ${{ vars.AUTH_URL }}
 
     steps:
@@ -232,18 +230,19 @@ jobs:
           GOOGLE_CLIENT_SECRET: ${{ env.GOOGLE_CLIENT_SECRET }}
           SIGNALY_WEBHOOK_LOGIN_URL: ${{ env.SIGNALY_WEBHOOK_LOGIN_URL }}
           TARGET_DIR: ${{ env.TARGET_DIR }}
-          APP_PORT: ${{ env.PORT }}
         with:
           host: ${{ env.HOST }}
           username: ${{ env.USERNAME }}
           key: ${{ env.SSH_PRIVATE_KEY }}
           port: ${{ env.SSH_PORT }}
-          envs: DATABASE_URL,DB_USER,DB_PASSWORD,DB_HOST,DB_PORT,DB_NAME,AUTH_URL,AUTH_SECRET,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,SIGNALY_WEBHOOK_LOGIN_URL,TARGET_DIR,APP_PORT
+          envs: DATABASE_URL,DB_USER,DB_PASSWORD,DB_HOST,DB_PORT,DB_NAME,AUTH_URL,AUTH_SECRET,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,SIGNALY_WEBHOOK_LOGIN_URL,TARGET_DIR
           script: |
             set -euo pipefail
             cd "${TARGET_DIR}"
 
-            PORT="${APP_PORT:-3104}"
+            # 待受ポートはシークレットではなく設定値として平文で持つ
+            # （guchi-apps/docs の standards/ports.md「ポート番号は 1Password で管理しない」。#76）。
+            PORT=3104
 
             echo "Cleaning up old release files..."
             rm -rf .next public package.json package-lock.json prisma prisma.config.ts src/lib/database-url.ts deploy scripts/install-apache-vhost.sh next.config.ts ecosystem.config.js
