@@ -2,7 +2,7 @@
 
 > **他 Agent 向け:** 本ファイルが仕様書（Discord通知機能追加版）に対する実装状況の正本です。  
 > 機能追加・デプロイ完了時は **必ず本ファイルを更新** してください。  
-> **最終更新:** 2026-07-07
+> **最終更新:** 2026-08-17
 
 ## ステータス凡例
 
@@ -23,7 +23,7 @@
 
 | レイヤー | 状態 |
 |----------|------|
-| 認証・Signaly・ミドルウェア | ✅ |
+| 認証（Supabase Auth）・Signaly・proxy | ✅ |
 | DB スキーマ（Prisma） | ✅ |
 | ローカル開発環境（`.env.local`、1Password 不要） | ✅ |
 | PWA 雛形 | ⚠️ |
@@ -41,10 +41,10 @@
 |------|------|----------------|
 | Next.js App Router + TypeScript + Tailwind | ✅ | プロジェクト全体 |
 | MySQL + Prisma | ✅ | `prisma/schema.prisma`, `prisma/migrations/` |
-| NextAuth (Auth.js) | ✅ | `src/auth.ts`, `src/auth.config.ts` |
-| Google OAuth | ✅ | `src/auth.ts`（本番 / 開発で別クライアント。開発用は `.env.local`） |
-| WebAuthn / Passkey | ✅ | Provider + ログイン (`next-auth/webauthn`) + ホーム初回登録 (`passkey-register-card.tsx`) + 設定画面の登録・再設定 (`passkey-settings.tsx`) |
-| Signaly Webhook（ログイン通知） | ✅ | `src/lib/signaly.ts`, `src/auth.ts` events |
+| Supabase Auth（Google） | ✅ | `src/lib/supabase/`, `src/app/auth/`, `src/proxy.ts`（本番 / 開発で別 Supabase プロジェクト。開発用は `.env.local`）（#27） |
+| 許可 Google アカウント判定 | ✅ | `src/lib/allowed-users.ts`（`ALLOWED_GOOGLE_EMAILS`）（#27） |
+| WebAuthn / Passkey | 🚫 | Supabase Auth 移行に伴い廃止（#27）。`authenticators` テーブルは切り戻し用に残置 |
+| Signaly Webhook（ログイン通知） | ✅ | `src/lib/signaly.ts`, `src/app/auth/callback/route.ts` |
 | PWA | ⚠️ | `public/manifest.json`, `public/sw.js`, `public/icons/`, `app-bottom-nav.tsx`, `app-page.tsx` |
 | pm2 | ✅ | `ecosystem.config.js`（本番 PORT 3104 既定） |
 | GitHub Actions → VPS SSH デプロイ | ⚠️ | `.github/workflows/deploy.yml`（**1Password・VPS 初回設定後に検証**） |
@@ -53,11 +53,11 @@
 
 | テーブル | Prisma | マイグレーション | API/UI |
 |----------|--------|------------------|--------|
-| `users` | ✅ | ✅ `20250621000000_init` | 認証のみ |
-| `accounts` | ✅ | ✅ | 認証のみ |
-| `sessions` | ✅ | ✅ | 認証のみ |
-| `verification_tokens` | ✅ | ✅ | 認証のみ |
-| `authenticators` | ✅ | ✅ | Passkey 登録・ログイン |
+| `users` | ✅ | ✅ `20250621000000_init`, `20250624000000_user_supabase_user_id` | 認証のみ。`supabase_user_id` で Supabase ユーザーと紐付け（#27） |
+| `accounts` | ✅ | ✅ | 旧 NextAuth 用（#27 で未使用。DROP は別 Issue） |
+| `sessions` | ✅ | ✅ | 旧 NextAuth 用（#27 で未使用。DROP は別 Issue） |
+| `verification_tokens` | ✅ | ✅ | 旧 NextAuth 用（#27 で未使用。DROP は別 Issue） |
+| `authenticators` | ✅ | ✅ | 旧 Passkey 用（#27 で未使用。DROP は別 Issue） |
 | `vehicles` | ✅ | ✅ | ✅ CRUD (`/vehicles`) |
 | `maintenance_categories` | ✅ | ✅ | ✅ 設定画面 CRUD |
 | `maintenance_logs` | ✅ | ✅ | ✅ CRUD + 一覧 (`/maintenance`) |
@@ -73,10 +73,11 @@
 
 | 要件 | 状態 | 備考 |
 |------|------|------|
-| Google ログイン | ✅ | |
-| パスキー登録 → 2回目以降顔認証ログイン | ✅ | Google 初回ログイン後ホームで登録、設定画面で再設定、2回目以降 `next-auth/webauthn` でログイン |
-| Signaly ログイン通知（新規登録・既存ログイン共通） | ✅ | `events.signIn` → `SIGNALY_WEBHOOK_LOGIN_URL`（Discord から移行済み） |
-| 未ログイン時 middleware ガード | ✅ | `src/middleware.ts` |
+| Google ログイン | ✅ | Supabase Auth 経由（#27）。`/auth/signin` → Google → `/auth/callback` |
+| 許可外 Google アカウントの拒否 | ✅ | `ALLOWED_GOOGLE_EMAILS`。拒否時は users を作らず Supabase セッションも破棄（#27） |
+| パスキー登録 → 2回目以降顔認証ログイン | 🚫 | Supabase Auth 移行に伴い廃止（#27） |
+| Signaly ログイン通知（新規登録・既存ログイン共通） | ✅ | `/auth/callback` → `SIGNALY_WEBHOOK_LOGIN_URL`（Discord から移行済み） |
+| 未ログイン時の認証ガード | ✅ | `src/proxy.ts`（Next.js 16 で `middleware.ts` から改称） |
 
 ### ② 給油・燃費可視化 & ガソリンスタンド検索
 
@@ -135,7 +136,7 @@
 | 要件 | 状態 | 備考 |
 |------|------|------|
 | 秘密情報をリポジトリに含めない | ✅ | `.gitignore`, `.env.example` |
-| ローカル開発は 1Password 不要 | ✅ | `.env.local`（DB・Auth・Google OAuth・通知）、`scripts/with-local-env.sh`（#21 で移行） |
+| ローカル開発は 1Password 不要 | ✅ | `.env.local`（DB・Supabase・通知）、`scripts/with-local-env.sh`（#21 で移行） |
 | 開発 DB | ✅ | `127.0.0.1:3306` 固定。`npm run db:setup`（`.env.local` の DB_USER/PASSWORD/NAME で作成） |
 | 開発環境から本番 DB 確認（1Password 使用） | ✅ | `DB_TARGET=production`, `.env.op`, `scripts/with-op-prod-db.sh`, `scripts/prod-db-tunnel.sh` |
 | 本番 Secrets → GitHub Actions / pm2 | ⚠️ | `.github/deploy.env.tpl` 定義済み。1Password 登録・`OP_SERVICE_ACCOUNT_TOKEN` 要設定 |
@@ -145,8 +146,8 @@
 | 変数 | 用途 | 備考 |
 |------|------|------|
 | `DB_NAME`, `DB_USER`, `DB_PASSWORD` | ローカル DB 認証 | 値は自由。`npm run db:setup` でユーザー・DB 作成 |
-| `AUTH_SECRET` | NextAuth | 値は自由（例: `openssl rand -hex 32`） |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth（開発用クライアント） | 本番用（1Password `apps/Car`）とは別クライアント（#21） |
+| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase Auth（開発用プロジェクト） | 本番用とは別プロジェクト（#27）。`service_role` キーは使わない |
+| `ALLOWED_GOOGLE_EMAILS` | ログインを許可する Google アカウント | カンマ区切り。**未設定だと誰もログインできない**（#27） |
 | `SIGNALY_WEBHOOK_LOGIN_URL` | 通知（新規登録・ログイン共通） | 任意。未設定なら通知をスキップ |
 
 ### 環境変数（1Password `apps/Car` / 本番）
@@ -155,8 +156,8 @@
 |------|------|
 | `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_HOST`, `DB_PORT` | DB 認証・接続先（ローカルから本番 DB 確認する場合は `.env.op` も使用） |
 | `SSH_HOST`, `SSH_USER`, `SSH_PORT` | 本番 DB SSH トンネル |
-| `AUTH_SECRET` | NextAuth |
-| `AUTH_URL` | 公開 URL |
+| `ALLOWED_GOOGLE_EMAILS` (`allowed-google-emails`) | ログインを許可する Google アカウント（#27） |
+| `AUTH_URL` | 公開 URL（アプリからは参照しない。Supabase の Redirect URLs 登録・Apache VirtualHost 生成で使う） |
 | `SIGNALY_WEBHOOK_LOGIN_URL` | 通知（新規登録・ログイン共通） |
 | `TARGET_DIR` (`target-dir`) | VPS デプロイ先パス |
 | `PORT` (`port`) | 待受ポート |
@@ -169,7 +170,7 @@
 | # | 項目 | 状態 |
 |---|------|------|
 | 1 | PWA `manifest.json` 雛形 | ✅ |
-| 2 | Prisma スキーマ（MySQL + NextAuth + WebAuthn） | ✅ |
+| 2 | Prisma スキーマ（MySQL + Supabase ユーザー紐付け） | ✅ |
 | 3 | Webhook 通知基盤（Signaly） | ✅ |
 | 4 | `ecosystem.config.js` | ✅ |
 | — | `develop` ブランチで開発 | ✅ |
@@ -179,7 +180,7 @@
 ## 主要ファイル索引（Agent 用）
 
 ```
-認証:     src/auth.ts, src/auth.config.ts, src/middleware.ts, src/app/login/, src/components/passkey-register-card.tsx, src/components/passkey-settings.tsx, src/lib/passkey.ts
+認証:     src/proxy.ts, src/lib/supabase/, src/lib/auth-user.ts, src/lib/allowed-users.ts, src/lib/auth-header.ts, src/lib/request-origin.ts, src/app/auth/, src/app/login/
 車両:     src/app/vehicles/, src/components/vehicle-form.tsx, src/components/vehicle-list.tsx, src/lib/vehicles.ts
 給油:     src/app/(app)/fuel/, src/components/fuel-*.tsx, src/lib/fuel-*.ts, src/app/api/gas-stations/route.ts
 メンテ:   src/app/(app)/maintenance/, src/components/maintenance-*.tsx, src/lib/maintenance-*.ts
@@ -219,6 +220,7 @@ DevOps:   ecosystem.config.js, .github/workflows/ci.yml, .github/workflows/deplo
 
 | 日付 | 内容 |
 |------|------|
+| 2026-08-17 | ログインを NextAuth（Auth.js）から Supabase Auth の Google 認証へ移行。`users.supabase_user_id` を追加し既存ユーザーをメールアドレスで紐付け。`ALLOWED_GOOGLE_EMAILS` による許可ユーザー判定を追加。パスキー（WebAuthn）ログインを廃止。`middleware.ts` を `proxy.ts` へ改称（#27） |
 | 2026-07-07 | ローカル開発を 1Password 不要に変更。DB・AUTH_SECRET・Signaly ログイン通知も `.env.local` で管理し、`scripts/with-local-env.sh` を新設（本番 DB 確認は引き続き `.env.op` / 1Password を使用）（#21） |
 | 2026-07-07 | Google OAuth を本番・開発で別クライアントに分離。開発用 Client ID/Secret は 1Password ではなく `.env.local`（`.env.local.example` 追加）で管理（#21） |
 | 2026-07-07 | Google ログインのみのため許可メールアドレス制限（`ALLOWED_EMAIL`）を廃止 |

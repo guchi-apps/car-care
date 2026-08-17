@@ -1,24 +1,20 @@
-import { auth } from "@/auth";
 import { AppHeader } from "@/components/app-header";
 import { AppPage } from "@/components/app-page";
 import { GasStationBrandSettings } from "@/components/gas-station-brand-settings";
 import { MaintenanceCategorySettings } from "@/components/maintenance-category-settings";
-import { PasskeySettings } from "@/components/passkey-settings";
 import { RegisteredGasStationSettings } from "@/components/registered-gas-station-settings";
 import { APP_VERSION } from "@/lib/app-version";
+import { getCurrentUser } from "@/lib/auth-user";
 import { ensureGasStationBrandsForUser } from "@/lib/gas-station-brands";
 import {
   ensureMaintenanceCategoriesForUser,
   getMaintenanceLogCountsByCategoryId,
 } from "@/lib/maintenance-categories";
-import { hasRegisteredPasskeys } from "@/lib/passkey";
 import { ensureRegisteredGasStationsForUser } from "@/lib/registered-gas-stations";
 
 export default async function SettingsPage() {
-  const session = await auth();
-  const userId = session?.user?.id;
-  const email = session?.user?.email;
-  const hasPasskey = email ? await hasRegisteredPasskeys(email) : false;
+  const user = await getCurrentUser();
+  const userId = user?.id;
   const brands = userId ? await ensureGasStationBrandsForUser(userId) : [];
   const registeredStations = userId
     ? await ensureRegisteredGasStationsForUser(userId)
@@ -36,9 +32,9 @@ export default async function SettingsPage() {
         title="設定"
         showHomeLink
         user={{
-          name: session?.user?.name,
-          email: session?.user?.email,
-          image: session?.user?.image,
+          name: user?.name,
+          email: user?.email,
+          image: user?.image,
         }}
       />
 
@@ -66,8 +62,6 @@ export default async function SettingsPage() {
             </div>
           </dl>
         </section>
-
-        <PasskeySettings hasPasskey={hasPasskey} />
       </AppPage>
     </main>
   );

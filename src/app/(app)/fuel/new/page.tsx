@@ -1,9 +1,9 @@
 import Link from "next/link";
 
-import { auth } from "@/auth";
 import { AppHeader } from "@/components/app-header";
 import { AppPage } from "@/components/app-page";
 import { FuelForm } from "@/components/fuel-form";
+import { getCurrentUser } from "@/lib/auth-user";
 import {
   listFuelLogsForVehicle,
 } from "@/lib/fuel-logs";
@@ -21,8 +21,8 @@ import { getVehicleSubtitle } from "@/lib/vehicle-display";
 import { getActiveVehicle } from "@/lib/vehicles";
 
 export default async function FuelNewPage() {
-  const session = await auth();
-  const userId = session?.user?.id;
+  const user = await getCurrentUser();
+  const userId = user?.id;
   const activeVehicle = userId ? await getActiveVehicle(userId) : null;
   const vehicleSubtitle = activeVehicle
     ? getVehicleSubtitle(activeVehicle)
@@ -63,9 +63,9 @@ export default async function FuelNewPage() {
         backHref="/fuel"
         backLabel="給油情報に戻る"
         user={{
-          name: session?.user?.name,
-          email: session?.user?.email,
-          image: session?.user?.image,
+          name: user?.name,
+          email: user?.email,
+          image: user?.image,
         }}
       />
 

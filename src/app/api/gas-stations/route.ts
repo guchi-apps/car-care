@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { getCurrentUser } from "@/lib/auth-user";
 import { formatDistanceMeters } from "@/lib/fuel-display";
 import { searchNearbyGasStations, lookupGasStationByOsmId } from "@/lib/gas-stations-search";
 
@@ -13,9 +13,9 @@ export type GasStationResult = {
 };
 
 export async function GET(request: Request) {
-  const session = await auth();
+  const user = await getCurrentUser();
 
-  if (!session?.user) {
+  if (!user) {
     return Response.json({ error: "認証が必要です" }, { status: 401 });
   }
 

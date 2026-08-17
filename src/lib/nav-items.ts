@@ -53,7 +53,7 @@ export const menuItems: MenuItem[] = [
   },
   {
     title: "設定",
-    desc: "ブランド・登録店舗・メンテカテゴリ・パスキー",
+    desc: "ブランド・登録店舗・メンテカテゴリ",
     emoji: "⚙️",
     href: "/settings",
     ready: true,

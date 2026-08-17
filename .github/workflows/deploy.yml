@@ -101,10 +101,10 @@ jobs:
       DB_USER: ${{ secrets.SHARED_DB_USER }}
       DB_PASSWORD: ${{ secrets.SHARED_DB_PASSWORD }}
       DB_NAME: ${{ secrets.DB_NAME }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ vars.SUPABASE_PROJECT_URL }}
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
       TARGET_DIR: ${{ secrets.TARGET_DIR }}
-      AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
-      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      ALLOWED_GOOGLE_EMAILS: ${{ secrets.ALLOWED_GOOGLE_EMAILS }}
       SIGNALY_WEBHOOK_URL: ${{ secrets.SIGNALY_WEBHOOK_URL }}
       SIGNALY_WEBHOOK_LOGIN_URL: ${{ secrets.SIGNALY_WEBHOOK_LOGIN_URL }}
       AUTH_URL: ${{ vars.AUTH_URL }}
@@ -130,10 +130,10 @@ jobs:
         env:
           NODE_ENV: production
           DATABASE_URL: ${{ env.DATABASE_URL }}
-          AUTH_URL: ${{ env.AUTH_URL }}
-          AUTH_SECRET: ${{ env.AUTH_SECRET }}
-          GOOGLE_CLIENT_ID: ${{ env.GOOGLE_CLIENT_ID }}
-          GOOGLE_CLIENT_SECRET: ${{ env.GOOGLE_CLIENT_SECRET }}
+          # NEXT_PUBLIC_* はビルド時にクライアントバンドルへ埋め込まれるため、
+          # deployジョブだけでなくここにも必要。
+          NEXT_PUBLIC_SUPABASE_URL: ${{ env.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
 
       - name: Create archive
         run: |
@@ -180,10 +180,10 @@ jobs:
       DB_USER: ${{ secrets.SHARED_DB_USER }}
       DB_PASSWORD: ${{ secrets.SHARED_DB_PASSWORD }}
       DB_NAME: ${{ secrets.DB_NAME }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ vars.SUPABASE_PROJECT_URL }}
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
       TARGET_DIR: ${{ secrets.TARGET_DIR }}
-      AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
-      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      ALLOWED_GOOGLE_EMAILS: ${{ secrets.ALLOWED_GOOGLE_EMAILS }}
       SIGNALY_WEBHOOK_URL: ${{ secrets.SIGNALY_WEBHOOK_URL }}
       SIGNALY_WEBHOOK_LOGIN_URL: ${{ secrets.SIGNALY_WEBHOOK_LOGIN_URL }}
       AUTH_URL: ${{ vars.AUTH_URL }}
@@ -224,10 +224,9 @@ jobs:
           DB_HOST: ${{ env.DB_HOST }}
           DB_PORT: ${{ env.DB_PORT }}
           DB_NAME: ${{ env.DB_NAME }}
-          AUTH_URL: ${{ env.AUTH_URL }}
-          AUTH_SECRET: ${{ env.AUTH_SECRET }}
-          GOOGLE_CLIENT_ID: ${{ env.GOOGLE_CLIENT_ID }}
-          GOOGLE_CLIENT_SECRET: ${{ env.GOOGLE_CLIENT_SECRET }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ env.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+          ALLOWED_GOOGLE_EMAILS: ${{ env.ALLOWED_GOOGLE_EMAILS }}
           SIGNALY_WEBHOOK_LOGIN_URL: ${{ env.SIGNALY_WEBHOOK_LOGIN_URL }}
           TARGET_DIR: ${{ env.TARGET_DIR }}
         with:
@@ -235,7 +234,7 @@ jobs:
           username: ${{ env.USERNAME }}
           key: ${{ env.SSH_PRIVATE_KEY }}
           port: ${{ env.SSH_PORT }}
-          envs: DATABASE_URL,DB_USER,DB_PASSWORD,DB_HOST,DB_PORT,DB_NAME,AUTH_URL,AUTH_SECRET,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,SIGNALY_WEBHOOK_LOGIN_URL,TARGET_DIR
+          envs: DATABASE_URL,DB_USER,DB_PASSWORD,DB_HOST,DB_PORT,DB_NAME,NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,ALLOWED_GOOGLE_EMAILS,SIGNALY_WEBHOOK_LOGIN_URL,TARGET_DIR
           script: |
             set -euo pipefail
             cd "${TARGET_DIR}"
@@ -264,10 +263,9 @@ jobs:
             update_env DB_HOST "$DB_HOST"
             update_env DB_PORT "$DB_PORT"
             update_env DB_NAME "$DB_NAME"
-            update_env AUTH_URL "$AUTH_URL"
-            update_env AUTH_SECRET "$AUTH_SECRET"
-            update_env GOOGLE_CLIENT_ID "$GOOGLE_CLIENT_ID"
-            update_env GOOGLE_CLIENT_SECRET "$GOOGLE_CLIENT_SECRET"
+            update_env NEXT_PUBLIC_SUPABASE_URL "$NEXT_PUBLIC_SUPABASE_URL"
+            update_env NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY "$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+            update_env ALLOWED_GOOGLE_EMAILS "$ALLOWED_GOOGLE_EMAILS"
             update_env SIGNALY_WEBHOOK_LOGIN_URL "$SIGNALY_WEBHOOK_LOGIN_URL"
 
             echo "Installing production dependencies..."

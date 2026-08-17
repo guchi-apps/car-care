@@ -34,7 +34,8 @@ export DATABASE_URL
 DATABASE_URL="$(bash "$ROOT/scripts/tsx.sh" "$ROOT/scripts/build-database-url.ts")"
 export DATABASE_URL
 
-# ローカル開発では常に localhost ベースの AUTH_URL_DEV を使う（本番の AUTH_URL は無視）
+# 本番 URL はローカル開発では使わない。OAuth のリダイレクト先は
+# リクエストの Host ヘッダーから組み立てる（src/lib/request-origin.ts）。
 unset AUTH_URL
 
 exec "$@"

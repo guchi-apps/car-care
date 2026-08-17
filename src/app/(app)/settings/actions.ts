@@ -16,7 +16,6 @@ import {
   updateRegisteredGasStationForUser,
 } from "@/lib/registered-gas-stations";
 import { MAX_GAS_STATION_BRAND_KEYWORDS_LENGTH } from "@/lib/fuel-constants";
-import { deletePasskeysForUser } from "@/lib/passkey";
 import {
   MAX_MAINTENANCE_INTERVAL_DAYS,
   MAX_MAINTENANCE_INTERVAL_KM,
@@ -277,20 +276,6 @@ export async function deleteRegisteredGasStationAction(
     return { ok: true };
   } catch {
     return { ok: false, error: "登録店舗の削除に失敗しました" };
-  }
-}
-
-export async function deletePasskeysAction(): Promise<SettingsActionState> {
-  try {
-    const userId = await requireUserId();
-    await deletePasskeysForUser(userId);
-
-    revalidatePath("/settings");
-    revalidatePath("/");
-
-    return { ok: true };
-  } catch {
-    return { ok: false, error: "パスキーの削除に失敗しました" };
   }
 }
 
