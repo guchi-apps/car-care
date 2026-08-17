@@ -1,21 +1,20 @@
 import { notFound } from "next/navigation";
 
-import { auth } from "@/auth";
+import { getCurrentUser } from "@/lib/auth-user";
 import { getVehicleForUser } from "@/lib/vehicles";
 
 export async function getVehicleForSession(vehicleId: string) {
-  const session = await auth();
-  const userId = session?.user?.id;
+  const user = await getCurrentUser();
 
-  if (!userId) {
+  if (!user) {
     notFound();
   }
 
-  const vehicle = await getVehicleForUser(userId, vehicleId);
+  const vehicle = await getVehicleForUser(user.id, vehicleId);
 
   if (!vehicle) {
     notFound();
   }
 
-  return { vehicle, session };
+  return { vehicle, user };
 }

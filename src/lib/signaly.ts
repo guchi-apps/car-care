@@ -50,16 +50,9 @@ async function sendSignalyWebhook(
   }
 }
 
-function formatProviderLabel(provider?: string | null) {
-  if (provider === "google") return "Google";
-  if (provider === "passkey") return "Passkey";
-  return provider ?? "不明";
-}
-
 export async function notifySignalyLogin(options: {
   email?: string | null;
   name?: string | null;
-  provider?: string | null;
 }): Promise<void> {
   const { clientIp, userAgent } = await getClientInfo();
   const timestamp = formatJstTimestamp();
@@ -69,7 +62,7 @@ export async function notifySignalyLogin(options: {
     `**日時**: ${timestamp} (JST)`,
     `**メール**: ${options.email ?? "不明"}`,
     `**名前**: ${options.name ?? "不明"}`,
-    `**認証方式**: ${formatProviderLabel(options.provider)}`,
+    "**認証方式**: Google（Supabase Auth）",
     `**IP**: ${clientIp}`,
     `**User-Agent**: ${userAgent}`,
   ].join("\n");

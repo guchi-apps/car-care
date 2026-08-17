@@ -1,30 +1,26 @@
-"use client";
+import { safeNextPath } from "@/lib/request-origin";
 
-import { signIn } from "next-auth/react";
-import { signIn as signInWebAuthn } from "next-auth/webauthn";
-import { useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+const errorMessages: Record<string, string> = {
+  not_allowed:
+    "許可されていないアカウントです。別の Google アカウントでお試しください。",
+  auth_failed: "ログインに失敗しました。もう一度お試しください。",
+};
 
-function LoginForm() {
-  const searchParams = useSearchParams();
-  const error = searchParams.get("error");
-  const callbackUrl = searchParams.get("callbackUrl") ?? "/";
-  const [passkeyLoading, setPasskeyLoading] = useState(false);
-  const [passkeyError, setPasskeyError] = useState<string | null>(null);
-
-  async function handlePasskeyLogin() {
-    setPasskeyLoading(true);
-    setPasskeyError(null);
-
-    try {
-      await signInWebAuthn("passkey", { callbackUrl });
-    } catch {
-      setPasskeyError(
-        "パスキーでのログインに失敗しました。初回は Google でログインし、パスキーを登録してください。",
-      );
-      setPasskeyLoading(false);
-    }
-  }
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const rawCallbackUrl = params.callbackUrl;
+  const callbackUrl = safeNextPath(
+    typeof rawCallbackUrl === "string" ? rawCallbackUrl : null,
+  );
+  const rawError = params.error;
+  const error = typeof rawError === "string" ? rawError : null;
+  const errorMessage = error
+    ? (errorMessages[error] ?? errorMessages.auth_failed)
+    : null;
 
   return (
     <div className="flex min-h-full flex-1 flex-col items-center justify-center px-4 py-12">
@@ -41,20 +37,16 @@ function LoginForm() {
           </div>
 
           <div className="space-y-4 p-6">
-            {(error || passkeyError) && (
-              <div className="app-alert-error px-4 py-3">
-                {passkeyError ??
-                  (error === "AccessDenied"
-                    ? "許可されていないアカウントです。管理者に連絡してください。"
-                    : error === "Configuration"
-                      ? "サーバー設定エラーです。MySQL が起動しているか確認し、npm run db:check を実行してください。"
-                      : "ログインに失敗しました。もう一度お試しください。")}
-              </div>
+            {errorMessage && (
+              <div className="app-alert-error px-4 py-3">{errorMessage}</div>
             )}
 
-            <button
-              type="button"
-              onClick={() => signIn("google", { callbackUrl })}
+            {/*
+              ログインは素のリンクにしておく。onClick でログインを開始すると、クライアント JS の
+              ハイドレーションが完了するまでボタンを押しても何も起きない状態が生まれる。
+            */}
+            <a
+              href={`/auth/signin?next=${encodeURIComponent(callbackUrl)}`}
               className="flex w-full items-center justify-center gap-3 rounded-xl bg-white px-4 py-3.5 text-sm font-medium text-slate-700 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50 active:scale-[0.98] dark:bg-slate-700 dark:text-slate-200 dark:ring-slate-600 dark:hover:bg-slate-600"
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
@@ -76,38 +68,14 @@ function LoginForm() {
                 />
               </svg>
               Google でログイン
-            </button>
-
-            <button
-              type="button"
-              onClick={handlePasskeyLogin}
-              disabled={passkeyLoading}
-              className="app-btn-primary flex w-full gap-3 py-3.5"
-            >
-              <span aria-hidden="true">🔐</span>
-              {passkeyLoading ? "認証中..." : "パスキー（顔認証）でログイン"}
-            </button>
+            </a>
 
             <p className="text-center text-xs leading-relaxed text-slate-400 dark:text-slate-500">
-              初回は Google ログイン後、パスキーを登録してください
+              許可された Google アカウントのみログインできます
             </p>
           </div>
         </div>
       </div>
     </div>
-  );
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-full flex-1 items-center justify-center">
-          <p className="text-slate-500 dark:text-slate-400">読み込み中...</p>
-        </div>
-      }
-    >
-      <LoginForm />
-    </Suspense>
   );
 }

@@ -38,10 +38,10 @@ jobs:
         env:
           NODE_ENV: production
           DATABASE_URL: mysql://placeholder:placeholder@127.0.0.1:3306/car_maintenance
-          AUTH_URL: http://localhost:3000
-          AUTH_SECRET: ci-placeholder-secret
-          GOOGLE_CLIENT_ID: ci-placeholder
-          GOOGLE_CLIENT_SECRET: ci-placeholder
+          # NEXT_PUBLIC_* はビルド時にクライアントバンドルへ埋め込まれるため、
+          # 値が無いとビルドが通らない。CIでは実際にSupabaseへ接続しないためダミーでよい。
+          NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
 
   notify:
     needs: [lint-and-build]

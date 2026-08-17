@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { getCurrentUser } from "@/lib/auth-user";
 import { formatDistanceMeters } from "@/lib/fuel-display";
 import { lookupGasStationsByOsmIds } from "@/lib/gas-stations-search";
 import { prisma } from "@/lib/prisma";
@@ -24,9 +24,9 @@ function haversineDistanceMeters(
 }
 
 export async function GET(request: Request) {
-  const session = await auth();
+  const user = await getCurrentUser();
 
-  if (!session?.user?.id) {
+  if (!user) {
     return Response.json({ error: "認証が必要です" }, { status: 401 });
   }
 
@@ -38,7 +38,7 @@ export async function GET(request: Request) {
     return Response.json({ error: "位置情報が不正です" }, { status: 400 });
   }
 
-  const stations = (await listRegisteredGasStationsForUser(session.user.id)).filter(
+  const stations = (await listRegisteredGasStationsForUser(user.id)).filter(
     (station) => !station.hiddenFromPicker,
   );
   const osmIds = stations

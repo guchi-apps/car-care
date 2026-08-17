@@ -8,12 +8,12 @@
 
 | 機能 | 説明 |
 |------|------|
-| 認証 | Google ログイン、パスキー（WebAuthn） |
+| 認証 | Supabase Auth 経由の Google ログイン（許可した Google アカウントのみ） |
 | ホーム | メンテアラート / ようこそ表示、給油・メンテのクイック入力、今月・先月の維持費サマリー |
 | 車両管理 | 車両の登録・編集・削除、アクティブ車両の切り替え（複数台対応） |
 | 給油記録 | 入力・一覧・編集・削除、燃費ダッシュボード（燃費・単価・月別走行距離グラフ）、周辺ガソリンスタンド検索、登録店舗の距離順表示 |
 | メンテナンス | カテゴリ別の整備履歴（入力・一覧・編集・削除）、次回メンテ予定アラート、走行距離グラフ |
-| 設定 | ガソリンスタンドブランド・登録店舗・メンテカテゴリの管理、パスキー登録・再設定 |
+| 設定 | ガソリンスタンドブランド・登録店舗・メンテカテゴリの管理 |
 | 通知 | 新規登録・ログイン時、CI / デプロイ結果の Signaly Webhook 通知 |
 | PWA | `manifest.json`、Service Worker（更新検知・自動リロード）、モバイルファースト UI |
 
@@ -23,7 +23,7 @@
 
 - **フロントエンド:** Next.js 16（App Router）、React 19、TypeScript、Tailwind CSS 4
 - **バックエンド:** Next.js Server Actions / Route Handlers
-- **認証:** NextAuth.js（Auth.js）— Google OAuth、WebAuthn
+- **認証:** Supabase Auth（Google OAuth）— 複数アプリで共有の Supabase プロジェクトを使用
 - **データベース:** MySQL + Prisma 7
 - **地図:** Leaflet + OpenStreetMap（Overpass API）
 - **機密情報:** ローカル開発は `.env.local`（1Password 不要）、本番デプロイ・本番 DB 確認は 1Password CLI（`.env.op`）
@@ -33,7 +33,7 @@
 
 - Node.js **20.19.0 以上**（[`.nvmrc`](./.nvmrc) 参照）
 - MySQL（開発時はローカル `127.0.0.1:3306`）
-- Google OAuth クライアント（ログイン用。**本番用とは別に開発用クライアントを作成**）
+- Supabase プロジェクト（ログイン用。**本番用とは別に開発用プロジェクトを使用**。Google Provider を有効化し、Redirect URLs にコールバック URL を登録しておく）
 - [1Password CLI](https://developer.1password.com/docs/cli/)（`op` コマンド。本番デプロイ・本番 DB 確認時のみ必要）
 
 ## セットアップ
@@ -46,14 +46,18 @@ npm install
 
 ### 2. 環境変数（.env.local、1Password 不要）
 
-ローカル開発の秘密情報（DB・Auth・Google OAuth・通知）はすべて `.env.local` に平文で保存します（`.gitignore` 済みでコミットされません）。1Password は本番デプロイと本番 DB 確認にのみ使用します。
+ローカル開発の秘密情報（DB・Supabase・通知）はすべて `.env.local` に平文で保存します（`.gitignore` 済みでコミットされません）。1Password は本番デプロイと本番 DB 確認にのみ使用します。
 
 ```bash
 cp .env.local.example .env.local
-# DB_NAME / DB_USER / DB_PASSWORD, AUTH_SECRET は自由な値で OK
+# DB_NAME / DB_USER / DB_PASSWORD は自由な値で OK
 ```
 
-Google Cloud Console で **開発用**（本番とは別）の OAuth クライアントを作成し、Client ID / Secret を `.env.local` に設定します。承認済みリダイレクト URI に `http://localhost:3000/api/auth/callback/google` を追加してください。
+**開発用**（本番とは別）の Supabase プロジェクトの `project-url` / `publishable-key` を `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` に設定します。Supabase ダッシュボードの **Authentication > URL Configuration > Redirect URLs** に `http://localhost:3000/auth/callback` を登録してください。
+
+`ALLOWED_GOOGLE_EMAILS` にログインを許可する Google アカウントをカンマ区切りで設定します。**未設定だと誰もログインできません**（共有 Supabase プロジェクトを他アプリと共用しているため、Supabase 側でログインできることと Car Care を使ってよいことを別に判定しています）。
+
+`service_role` キーはフロントエンドにもリポジトリにも置きません。
 
 `SIGNALY_WEBHOOK_LOGIN_URL` は任意です（未設定ならログイン通知をスキップします）。フィールド一覧は [`.env.local.example`](./.env.local.example) を参照してください。
 
@@ -86,9 +90,7 @@ WSL 再起動後の初回は UAC（管理者承認）が求められることが
 powershell -ExecutionPolicy Bypass -File scripts/wsl-port-forward.ps1
 ```
 
-**Google ログイン（LAN 経由）:** OAuth クライアントに `http://<LAN-IP>.sslip.io:3000/api/auth/callback/google` を追加してください（生 IP は Google が拒否します）。
-
-**パスキー:** HTTP + LAN IP では利用できません。LAN 経由の確認時は Google ログインを使用してください。
+**Google ログイン（LAN 経由）:** Supabase の Redirect URLs に `http://<LAN-IP>.sslip.io:3000/auth/callback` を追加してください（生 IP は Google が拒否します）。
 
 ## よく使うコマンド
 
@@ -213,10 +215,13 @@ src/
   app/
     (app)/         # 認証済みアプリ（ホーム・給油・メンテ・車両・設定）
     login/         # ログイン画面
-    api/           # Route Handlers（認証・ガソリンスタンド検索・ジオコーディング）
-  auth.ts          # NextAuth 設定
+    auth/          # Supabase Auth のログイン開始・コールバック・ログアウト
+    api/           # Route Handlers（ガソリンスタンド検索・ジオコーディング）
+  proxy.ts         # 全リクエストのセッション検証・認証ガード（旧 middleware.ts）
   components/      # UI コンポーネント
   lib/             # ビジネスロジック・ユーティリティ
+    supabase/      # Supabase クライアント（サーバー / proxy 用）
+    auth-user.ts   # ログイン中ユーザーの取得（proxy が検証した結果を使う）
 prisma/            # スキーマ・マイグレーション
 scripts/           # 開発・デプロイ用シェルスクリプト
 public/            # 静的ファイル・PWA アセット

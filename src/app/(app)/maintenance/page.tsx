@@ -1,11 +1,11 @@
 import Link from "next/link";
 
-import { auth } from "@/auth";
 import { AppHeader } from "@/components/app-header";
 import { AppPage } from "@/components/app-page";
 import { MaintenanceList } from "@/components/maintenance-list";
 import { MaintenanceOdometerChart } from "@/components/maintenance-odometer-chart";
 import { MaintenanceSchedulePanel } from "@/components/maintenance-schedule-panel";
+import { getCurrentUser } from "@/lib/auth-user";
 import { listFuelLogsForVehicle } from "@/lib/fuel-logs";
 import { ensureMaintenanceCategoriesForUser } from "@/lib/maintenance-categories";
 import {
@@ -20,8 +20,8 @@ import { getVehicleSubtitle } from "@/lib/vehicle-display";
 import { getActiveVehicle } from "@/lib/vehicles";
 
 export default async function MaintenancePage() {
-  const session = await auth();
-  const userId = session?.user?.id;
+  const user = await getCurrentUser();
+  const userId = user?.id;
   const activeVehicle = userId ? await getActiveVehicle(userId) : null;
   const vehicleSubtitle = activeVehicle
     ? getVehicleSubtitle(activeVehicle)
@@ -78,9 +78,9 @@ export default async function MaintenancePage() {
         }
         showHomeLink
         user={{
-          name: session?.user?.name,
-          email: session?.user?.email,
-          image: session?.user?.image,
+          name: user?.name,
+          email: user?.email,
+          image: user?.image,
         }}
       />
 

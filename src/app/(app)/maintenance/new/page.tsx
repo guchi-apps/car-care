@@ -1,16 +1,16 @@
 import Link from "next/link";
 
-import { auth } from "@/auth";
 import { AppHeader } from "@/components/app-header";
 import { AppPage } from "@/components/app-page";
 import { MaintenanceForm } from "@/components/maintenance-form";
+import { getCurrentUser } from "@/lib/auth-user";
 import { ensureMaintenanceCategoriesForUser } from "@/lib/maintenance-categories";
 import { getVehicleSubtitle } from "@/lib/vehicle-display";
 import { getActiveVehicle } from "@/lib/vehicles";
 
 export default async function MaintenanceNewPage() {
-  const session = await auth();
-  const userId = session?.user?.id;
+  const user = await getCurrentUser();
+  const userId = user?.id;
   const activeVehicle = userId ? await getActiveVehicle(userId) : null;
   const vehicleSubtitle = activeVehicle
     ? getVehicleSubtitle(activeVehicle)
@@ -30,9 +30,9 @@ export default async function MaintenanceNewPage() {
         backHref="/maintenance"
         backLabel="メンテナンスに戻る"
         user={{
-          name: session?.user?.name,
-          email: session?.user?.email,
-          image: session?.user?.image,
+          name: user?.name,
+          email: user?.email,
+          image: user?.image,
         }}
       />
 
