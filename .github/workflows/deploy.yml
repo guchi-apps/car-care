@@ -180,6 +180,10 @@ jobs:
       DB_USER: ${{ secrets.SHARED_DB_USER }}
       DB_PASSWORD: ${{ secrets.SHARED_DB_PASSWORD }}
       DB_NAME: ${{ secrets.DB_NAME }}
+      # マイグレーション専用ユーザー（DDL権限あり）。通常ユーザーには ALTER 権限が無く、
+      # 列を追加するマイグレーションが `ALTER command denied` で落ちる（#91）。
+      MIGRATE_DB_USER: ${{ secrets.SHARED_DB_MIGRATE_USER }}
+      MIGRATE_DB_PASSWORD: ${{ secrets.SHARED_DB_MIGRATE_PASSWORD }}
       NEXT_PUBLIC_SUPABASE_URL: ${{ vars.SUPABASE_PROJECT_URL }}
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
       TARGET_DIR: ${{ secrets.TARGET_DIR }}
@@ -219,6 +223,7 @@ jobs:
         uses: appleboy/ssh-action@v1
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
+          MIGRATE_DATABASE_URL: ${{ env.MIGRATE_DATABASE_URL }}
           DB_USER: ${{ env.DB_USER }}
           DB_PASSWORD: ${{ env.DB_PASSWORD }}
           DB_HOST: ${{ env.DB_HOST }}
@@ -234,7 +239,7 @@ jobs:
           username: ${{ env.USERNAME }}
           key: ${{ env.SSH_PRIVATE_KEY }}
           port: ${{ env.SSH_PORT }}
-          envs: DATABASE_URL,DB_USER,DB_PASSWORD,DB_HOST,DB_PORT,DB_NAME,NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,ALLOWED_GOOGLE_EMAILS,SIGNALY_WEBHOOK_LOGIN_URL,TARGET_DIR
+          envs: DATABASE_URL,MIGRATE_DATABASE_URL,DB_USER,DB_PASSWORD,DB_HOST,DB_PORT,DB_NAME,NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,ALLOWED_GOOGLE_EMAILS,SIGNALY_WEBHOOK_LOGIN_URL,TARGET_DIR
           script: |
             set -euo pipefail
             cd "${TARGET_DIR}"
@@ -275,7 +280,7 @@ jobs:
             node scripts/reconcile-migrations-deploy.mjs
 
             echo "Applying database migrations..."
-            npx prisma migrate deploy
+            DATABASE_URL="${MIGRATE_DATABASE_URL:-$DATABASE_URL}" npx prisma migrate deploy
 
             echo "Restarting PM2..."
             if command -v pm2 >/dev/null 2>&1; then

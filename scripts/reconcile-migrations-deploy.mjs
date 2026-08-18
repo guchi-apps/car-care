@@ -54,6 +54,42 @@ async function isMigrationApplied(conn, migrationName) {
   return rows.some((row) => row.finished_at != null);
 }
 
+// 適用の途中で失敗し、未完了のまま残った記録をロールバック扱いにする。
+//
+// **これが残っていると、以降のマイグレーションが一切適用されない**（Prisma の P3018
+// 「New migrations cannot be applied before the error is recovered from」）。#91 では
+// DDL権限の無いユーザーで `ALTER TABLE` を流して 1142 で落ち、以後どのデプロイも
+// 同じ場所で止まる状態になった。
+//
+// **落ちた時点でDDLは1文も通っていない**（権限エラーはMySQLがステートメントを実行する前に
+// 返す）ため、ロールバック扱いにして次の `migrate deploy` で流し直すのが正しい。部分適用が
+// 起きうるマイグレーションを足す場合は、この扱いで良いかを個別に見直すこと。
+async function rollbackUnfinishedMigrations(conn) {
+  const rows = await conn.query(
+    `
+      SELECT migration_name
+      FROM _prisma_migrations
+      WHERE finished_at IS NULL AND rolled_back_at IS NULL
+    `,
+  );
+
+  if (rows.length === 0) {
+    return;
+  }
+
+  for (const row of rows) {
+    console.log(`[${row.migration_name}] 失敗したまま残っていた記録をロールバック扱いにします`);
+  }
+
+  await conn.query(
+    `
+      UPDATE _prisma_migrations
+      SET rolled_back_at = NOW()
+      WHERE finished_at IS NULL AND rolled_back_at IS NULL
+    `,
+  );
+}
+
 async function reconcileRepair(conn, repair) {
   const existing = await listTableColumns(conn, repair.table);
   const missing = repair.columns.filter((column) => !existing.has(column.name));
@@ -97,6 +133,8 @@ try {
 
   try {
     console.log(`Reconciling migrations on ${host}:${port}/${database} ...`);
+
+    await rollbackUnfinishedMigrations(conn);
 
     for (const repair of MIGRATION_REPAIRS) {
       await reconcileRepair(conn, repair);

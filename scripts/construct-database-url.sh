@@ -26,6 +26,22 @@ if [[ -n "${GITHUB_ENV:-}" ]]; then
   echo "DATABASE_URL=${DATABASE_URL}" >> "$GITHUB_ENV"
 fi
 
+# マイグレーション専用ユーザー（DDL権限あり）。設定されている場合のみ構築する。
+#
+# 共有MariaDBの通常ユーザーには`ALTER`権限が無く、DDLを伴うマイグレーションが
+# `ALTER command denied`（MySQL 1142）で落ちる（#91）。テーブル追加だけのマイグレーションは
+# 通ってしまうため、列を足す変更を入れたときに初めて表面化する。
+if [[ -n "${MIGRATE_DB_USER:-}" && -n "${MIGRATE_DB_PASSWORD:-}" ]]; then
+  MIGRATE_DB_USER_ENC=$(urlencode "$MIGRATE_DB_USER")
+  MIGRATE_DB_PASSWORD_ENC=$(urlencode "$MIGRATE_DB_PASSWORD")
+  export MIGRATE_DATABASE_URL="mysql://${MIGRATE_DB_USER_ENC}:${MIGRATE_DB_PASSWORD_ENC}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+
+  if [[ -n "${GITHUB_ENV:-}" ]]; then
+    echo "::add-mask::${MIGRATE_DATABASE_URL}"
+    echo "MIGRATE_DATABASE_URL=${MIGRATE_DATABASE_URL}" >> "$GITHUB_ENV"
+  fi
+fi
+
 if [[ $# -eq 0 ]]; then
   exit 0
 fi
