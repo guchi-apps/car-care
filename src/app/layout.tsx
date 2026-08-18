@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 
-import { AuthProvider } from "@/components/auth-provider";
 import { ServiceWorkerRegister } from "@/components/service-worker-register";
 
 import "./globals.css";
@@ -41,10 +40,8 @@ export default function RootLayout({
   return (
     <html lang="ja" className="h-full">
       <body className="flex min-h-full flex-col text-slate-900 antialiased dark:text-slate-100">
-        <AuthProvider>
-          {children}
-          <ServiceWorkerRegister />
-        </AuthProvider>
+        {children}
+        <ServiceWorkerRegister />
       </body>
     </html>
   );

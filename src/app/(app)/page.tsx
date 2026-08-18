@@ -1,11 +1,10 @@
-import { auth } from "@/auth";
 import { AppHeader } from "@/components/app-header";
 import { AppPage } from "@/components/app-page";
 import { HomeMaintenanceAlerts } from "@/components/home-maintenance-alerts";
 import { HomeMonthlyCosts } from "@/components/home-monthly-costs";
 import { HomeQuickActions } from "@/components/home-quick-actions";
 import { HomeWelcomeCard } from "@/components/home-welcome-card";
-import { PasskeyRegisterCard } from "@/components/passkey-register-card";
+import { getCurrentUser } from "@/lib/auth-user";
 import { listFuelLogsForVehicle } from "@/lib/fuel-logs";
 import { ensureMaintenanceCategoriesForUser } from "@/lib/maintenance-categories";
 import {
@@ -17,17 +16,14 @@ import {
   computeMaintenanceSchedule,
   getMaintenanceAlerts,
 } from "@/lib/maintenance-stats";
-import { hasRegisteredPasskeys } from "@/lib/passkey";
 import { computeVehicleMonthlyCosts } from "@/lib/vehicle-costs";
 import { getActiveVehicle, listVehicles } from "@/lib/vehicles";
 
 export default async function HomePage() {
-  const session = await auth();
-  const email = session?.user?.email;
-  const userId = session?.user?.id;
+  const user = await getCurrentUser();
+  const userId = user?.id;
 
-  const [hasPasskey, vehicles, activeVehicle, categories] = await Promise.all([
-    email ? hasRegisteredPasskeys(email) : Promise.resolve(false),
+  const [vehicles, activeVehicle, categories] = await Promise.all([
     userId ? listVehicles(userId) : Promise.resolve([]),
     userId ? getActiveVehicle(userId) : Promise.resolve(null),
     userId ? ensureMaintenanceCategoriesForUser(userId) : Promise.resolve([]),
@@ -82,22 +78,20 @@ export default async function HomePage() {
         title="Car Care"
         subtitle="ダッシュボード"
         user={{
-          name: session?.user?.name,
-          email: session?.user?.email,
-          image: session?.user?.image,
+          name: user?.name,
+          email: user?.email,
+          image: user?.image,
         }}
       />
 
       <AppPage className="space-y-6">
-        {email && !hasPasskey && <PasskeyRegisterCard />}
-
         {maintenanceAlerts.length > 0 ? (
           <HomeMaintenanceAlerts alerts={maintenanceAlerts} />
         ) : (
           <HomeWelcomeCard
             activeVehicle={activeVehicle}
             vehicleCount={vehicles.length}
-            userName={session?.user?.name}
+            userName={user?.name}
           />
         )}
 

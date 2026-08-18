@@ -12,7 +12,7 @@ export default async function VehicleDeletePage({
   params,
 }: VehicleDeletePageProps) {
   const { id } = await params;
-  const { vehicle, session } = await getVehicleForSession(id);
+  const { vehicle, user } = await getVehicleForSession(id);
 
   return (
     <main className="flex min-h-full flex-1 flex-col">
@@ -22,9 +22,9 @@ export default async function VehicleDeletePage({
         backHref={`/vehicles/${vehicle.id}`}
         backLabel="詳細に戻る"
         user={{
-          name: session.user?.name,
-          email: session.user?.email,
-          image: session.user?.image,
+          name: user?.name,
+          email: user?.email,
+          image: user?.image,
         }}
       />
 

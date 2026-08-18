@@ -24,7 +24,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ```bash
 cp .env.local.example .env.local
-# DB_NAME / DB_USER / DB_PASSWORD / AUTH_SECRET / GOOGLE_CLIENT_ID・SECRET を設定
+# DB_NAME / DB_USER / DB_PASSWORD と、開発用 Supabase の URL・publishable key、ALLOWED_GOOGLE_EMAILS を設定
 npm run db:setup && npm run db:migrate
 ```
 
@@ -40,8 +40,7 @@ WSL2 では `npm run dev` 起動時に Windows 側のポート転送（3000）�
 powershell -ExecutionPolicy Bypass -File scripts/wsl-port-forward.ps1
 ```
 
-- Google ログイン: 開発用 OAuth クライアント（本番とは別。`.env.local` で管理）に `http://<LAN-IP>.sslip.io:3000/api/auth/callback/google` を追加（生 IP は Google が拒否する）
-- パスキー: HTTP + LAN IP では不可（Google ログインを利用）
+- Google ログイン: 開発用 Supabase プロジェクト（本番とは別。`.env.local` で管理）の Redirect URLs に `http://<LAN-IP>.sslip.io:3000/auth/callback` を追加（生 IP は Google が拒否する）
 
 環境変数はローカル開発では `.env.local`（1Password 不要）。1Password（`.env.op`）は本番デプロイ・本番 DB 確認にのみ使用する。詳細は `.env.example` を参照。
 
@@ -71,6 +70,40 @@ npm run dev:prod-db:tunnel
 `.env.op` に `SSH_HOST` / `SSH_USER` / `SSH_PORT` を登録すること。`prisma migrate dev` は本番 DB ではブロックされる。
 
 <!-- BEGIN:multi-agent-rules -->
+## 認証（Supabase Auth）
+
+ログインは複数アプリで共有している Supabase プロジェクトの Google 認証で行う（#27）。
+このリポジトリに NextAuth（Auth.js）・パスキー（WebAuthn）は**もう無い**。
+
+| 役割 | ファイル |
+|---|---|
+| 全リクエストのセッション検証・認証ガード | `src/proxy.ts` → `src/lib/supabase/proxy-session.ts` |
+| ログイン開始 / コールバック / ログアウト | `src/app/auth/{signin,callback,signout}/route.ts` |
+| ログイン中ユーザーの取得 | `src/lib/auth-user.ts`（`getCurrentUser()` / `requireUserId()`） |
+| 許可 Google アカウント判定 | `src/lib/allowed-users.ts`（`ALLOWED_GOOGLE_EMAILS`） |
+
+触るときに引っかかりやすい点:
+
+- **ページ・Server Action から `supabase.auth.getUser()` を呼び直さない。** `getUser()` は毎回
+  Supabase へ HTTP 往復する。検証は `proxy.ts` が済ませ、結果を `x-car-care-supabase-user-id`
+  ヘッダーで後段へ渡している。`proxy.ts` は matcher に一致する全リクエストでこのヘッダーを
+  必ず上書き・削除するため、クライアントが同名ヘッダーを詐称しても後段には届かない
+- **`middleware.ts` ではなく `proxy.ts`。** Next.js 16 で `middleware` は deprecated になり
+  `proxy` へ改称された（`node_modules/next/dist/docs/01-app/02-guides/upgrading/version-16.md`）。
+  `proxy` は nodejs ランタイム固定で、edge は使えない
+- **ログイン・ログアウトは素のリンク / フォーム POST にする。** `onClick` で `signInWithOAuth` を
+  呼ぶとハイドレーション完了までボタンが効かない
+- **`NEXT_PUBLIC_*` はビルド時にバンドルへ埋め込まれる。** `deploy.yml` の `deploy` ジョブだけでなく
+  `build` ジョブの env にも必要で、CI（`ci.yml`）にもダミー値が要る。値が無いとビルドが通らない
+- **`users.id` は Supabase の UUID ではない。** 車両・給油・メンテの外部キーが cuid の `users.id` を
+  指しているため差し替えられない。Supabase のユーザー ID は `users.supabase_user_id` に持ち、
+  移行前から居るユーザーは初回ログイン時にメールアドレスで紐付ける（`src/app/auth/callback/route.ts`）
+- **リダイレクト先の origin は Host ヘッダーから組む**（`src/lib/request-origin.ts`）。
+  `request.url` は 0.0.0.0 待受や sslip.io 経由で実際のホスト名を反映しないことがある
+
+`accounts` / `sessions` / `verification_tokens` / `authenticators` と `users.email_verified` は
+旧 NextAuth の残骸で、現在は誰も読み書きしていない（切り戻し余地を残すため残置。DROP は別 Issue）。
+
 # マルチエージェント運用（GitHub Actions 無人実行）
 
 `@claude` コメントを起点に、計画提示〜実装〜develop向けPR作成までを GitHub Actions 上で無人実行する。

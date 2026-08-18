@@ -31,9 +31,8 @@ hostname_from_url() {
   python3 -c "from urllib.parse import urlparse; import sys; print(urlparse(sys.argv[1]).hostname or '')" "$1"
 }
 
-if [[ -z "${APP_PORT:-}" ]]; then
-  APP_PORT="$(read_op "op://apps/Car/port")"
-fi
+# 待受ポートはシークレットではなく設定値として平文で持つ
+# （guchi-apps/docs の standards/ports.md。1Password の port フィールドは #76 で削除済み）。
 APP_PORT="${APP_PORT:-3104}"
 
 if [[ -z "${CAR_SERVER_NAME:-}" ]]; then

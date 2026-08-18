@@ -7,14 +7,22 @@ datasource db {
   provider = "mysql"
 }
 
-// --- NextAuth.js / Auth.js ---
-
+// --- 認証 ---
+//
+// ログインは Supabase Auth（Google）が担う。users.id は車両・給油・メンテナンスの外部キーに
+// 使われているため差し替えられないので、Supabase 側のユーザー ID は supabase_user_id に持つ。
+// Supabase 移行前から存在するユーザーは NULL で、初回ログイン時にメールアドレスで紐付ける
+// （src/app/auth/callback/route.ts）。
+//
+// accounts / sessions / verification_tokens / authenticators と users.email_verified は
+// 旧 NextAuth（Auth.js）が使っていた列・テーブル。移行の切り戻し余地を残すため今回は残す。
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime? @map("email_verified")
-  image         String?
+  id             String    @id @default(cuid())
+  supabaseUserId String?   @unique @map("supabase_user_id")
+  name           String?
+  email          String    @unique
+  emailVerified  DateTime? @map("email_verified")
+  image          String?
 
   accounts              Account[]
   sessions              Session[]
