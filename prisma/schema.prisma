@@ -31,6 +31,7 @@ model User {
   maintenanceCategories MaintenanceCategory[]
   gasStationBrands      GasStationBrand[]
   registeredGasStations RegisteredGasStation[]
+  zaimConnection        ZaimConnection?
 
   @@map("users")
 }
@@ -220,10 +221,43 @@ model FuelLog {
   gasStationName   String?  @map("gas_station_name")
   gasStationBrands String?  @map("gas_station_brands")
   gasStationOsmId  String?  @map("gas_station_osm_id")
+  zaimMoneyId      String?  @map("zaim_money_id")
+  zaimRegisteredAt DateTime? @map("zaim_registered_at")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
   vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
 
   @@map("fuel_logs")
+}
+
+/// Zaim（家計簿）との連携情報。**ユーザーごとに1件**持つ。
+///
+/// 給油記録を Zaim の支出として登録するために、OAuth 1.0a のアクセストークンを保持する。
+/// トークンはパスワード相当のため、ZAIM_TOKEN_ENCRYPTION_KEY で暗号化した文字列を入れる
+/// （src/lib/zaim/secret-box.ts）。平文を書かないこと。
+///
+/// カテゴリ・ジャンル・口座の ID は Zaim 側で採番された値で、人によって異なる。連携後に
+/// Zaim から取得した一覧から選ばせ、表示用に名前も控えておく（毎回 API を叩かないため）。
+model ZaimConnection {
+  id                String    @id @default(cuid())
+  userId            String    @unique @map("user_id")
+  zaimUserId        String?   @map("zaim_user_id")
+  zaimUserName      String?   @map("zaim_user_name")
+  accessToken       String    @map("access_token") @db.Text
+  accessTokenSecret String    @map("access_token_secret") @db.Text
+  autoRegister      Boolean   @default(true) @map("auto_register")
+  categoryId        String?   @map("category_id")
+  categoryName      String?   @map("category_name")
+  genreId           String?   @map("genre_id")
+  genreName         String?   @map("genre_name")
+  accountId         String?   @map("account_id")
+  accountName       String?   @map("account_name")
+  lastRegisteredAt  DateTime? @map("last_registered_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("zaim_connections")
 }

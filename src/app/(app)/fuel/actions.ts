@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireUserId } from "@/lib/auth-user";
+import { getCurrentUser, requireUserId } from "@/lib/auth-user";
 import { OTHER_GAS_STATION_BRAND_NAME } from "@/lib/gas-station-brand-types";
 import {
   ensureGasStationBrandsForUser,
@@ -29,8 +29,13 @@ import {
 import { upsertRegisteredGasStationFromFuelLog } from "@/lib/registered-gas-stations";
 import { computeFuelEfficiencyForLog } from "@/lib/fuel-stats";
 import { getVehicleForUser } from "@/lib/vehicles";
+import {
+  registerFuelLogToZaim,
+  type ZaimSyncResult,
+} from "@/lib/zaim/fuel-sync";
 
 export type FuelLogRegisteredSummary = {
+  fuelLogId: string;
   date: string;
   distanceKm: number;
   odometer: number | null;
@@ -47,6 +52,8 @@ export type FuelActionState = {
   error?: string;
   resetToken?: number;
   registered?: FuelLogRegisteredSummary;
+  /** Zaim へ登録したかどうか。連携していないときは付かない。 */
+  zaim?: ZaimSyncResult;
 };
 
 function parseDate(value: FormDataEntryValue | null) {
@@ -321,7 +328,13 @@ export async function createFuelLogAction(
   formData: FormData,
 ): Promise<FuelActionState> {
   try {
-    const userId = await requireUserId();
+    const user = await getCurrentUser();
+
+    if (!user) {
+      return { ok: false, error: "認証が必要です" };
+    }
+
+    const userId = user.id;
     const vehicleResult = await requireVehicleForUser(userId, vehicleId);
 
     if ("error" in vehicleResult) {
@@ -352,6 +365,10 @@ export async function createFuelLogAction(
       osmId: parsed.data.gasStationOsmId,
     });
 
+    // Zaim への登録は「おまけ」で、失敗しても給油記録の登録は成功とする
+    // （家計簿の都合で車の記録を落とさない）。結果は画面に出す。
+    const zaim = await registerFuelLogToZaim(userId, user.email, created.id);
+
     revalidatePath("/fuel");
     revalidatePath("/fuel/new");
     revalidatePath("/settings");
@@ -360,7 +377,9 @@ export async function createFuelLogAction(
     return {
       ok: true,
       resetToken: Date.now(),
+      zaim,
       registered: {
+        fuelLogId: created.id,
         date: parsed.data.date.toISOString(),
         distanceKm: parsed.data.distanceKm,
         odometer: parsed.data.odometer ?? null,
@@ -467,5 +486,43 @@ export async function deleteFuelLogsAction(
     return { ok: true, resetToken: Date.now() };
   } catch {
     return { ok: false, error: "給油記録の削除に失敗しました" };
+  }
+}
+
+/**
+ * 給油履歴の「Zaimに登録」から呼ぶ。
+ *
+ * 自動登録がオフのとき・登録に失敗したとき・連携より前につけた記録を、あとから 1 件ずつ送る。
+ * すでに登録済みの記録は二重に入らない（fuel-sync.ts が zaim_money_id を見る）。
+ */
+export async function registerFuelLogToZaimAction(
+  fuelLogId: string,
+): Promise<FuelActionState> {
+  try {
+    const user = await getCurrentUser();
+
+    if (!user) {
+      return { ok: false, error: "認証が必要です" };
+    }
+
+    const zaim = await registerFuelLogToZaim(user.id, user.email, fuelLogId, {
+      manual: true,
+    });
+
+    if (zaim.status === "failed" || zaim.status === "not-configured") {
+      return { ok: false, error: zaim.message ?? "Zaimへの登録に失敗しました", zaim };
+    }
+
+    if (zaim.status === "unavailable") {
+      return { ok: false, error: "Zaimと連携していません", zaim };
+    }
+
+    revalidatePath("/fuel");
+    revalidatePath("/settings");
+
+    return { ok: true, resetToken: Date.now(), zaim };
+  } catch (error) {
+    console.error("[zaim] 履歴からの登録に失敗:", error);
+    return { ok: false, error: "Zaimへの登録に失敗しました" };
   }
 }

@@ -2,7 +2,7 @@
 
 > **他 Agent 向け:** 本ファイルが仕様書（Discord通知機能追加版）に対する実装状況の正本です。  
 > 機能追加・デプロイ完了時は **必ず本ファイルを更新** してください。  
-> **最終更新:** 2026-08-17
+> **最終更新:** 2026-08-19
 
 ## ステータス凡例
 
@@ -64,6 +64,7 @@
 | `fuel_logs` | ✅ | ✅ | ✅ CRUD + ダッシュボード (`/fuel`) |
 | `gas_station_brands` | ✅ | ✅ | ✅ 設定画面 CRUD |
 | `registered_gas_stations` | ✅ | ✅ `20250621260000` | ✅ 設定画面 CRUD・給油フォーム連携 |
+| `zaim_connections` | ✅ | ✅ `20260819000000_zaim_connection` | ✅ 設定画面の「Zaim連携」（ユーザーごとに1件）（#26） |
 
 ---
 
@@ -88,6 +89,7 @@
 | ダッシュボード（走行距離・燃費サマリー、燃費/単価/月別走行距離グラフ） | ✅ | `fuel-dashboard.tsx`, `FuelSummary`, `scrollable-trend-line-chart.tsx`, `monthly-distance-chart.tsx`, `fuel-price-trend-chart.tsx`, `fuel-efficiency-trend-chart.tsx` |
 | 周辺ガソリンスタンド検索（Geolocation） | ✅ | `gas-station-map-picker.tsx`, `/api/gas-stations`（半径3km検索・近い順10件表示・中心地点の手動店舗登録・地図折りたたみ） |
 | 登録済み店舗の現在地からの距離表示 | ✅ | `registered-gas-station-picker.tsx`, `/api/registered-gas-stations/nearby`（保存座標または OSM 座標から距離計算） |
+| Zaim（家計簿）へ給油を支出として自動登録 | ✅ | `src/lib/zaim/`, `/api/zaim/connect`・`/api/zaim/callback`, `zaim-connection-settings.tsx`。OAuth 1.0a を利用者ごとに保持し、登録先（カテゴリ・ジャンル・支払元）を設定画面で選ぶ。履歴からの手動登録・二重登録防止つき（#26） |
 
 ### ③ メンテナンス記録 & カテゴリ動的管理
 
@@ -149,6 +151,9 @@
 | `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase Auth（開発用プロジェクト） | 本番用とは別プロジェクト（#27）。`service_role` キーは使わない |
 | `ALLOWED_GOOGLE_EMAILS` | ログインを許可する Google アカウント | カンマ区切り。**未設定だと誰もログインできない**（#27） |
 | `SIGNALY_WEBHOOK_LOGIN_URL` | 通知（新規登録・ログイン共通） | 任意。未設定なら通知をスキップ |
+| `ZAIM_CONSUMER_KEY` / `ZAIM_CONSUMER_SECRET` | Zaim API の OAuth 1.0a 鍵 | https://dev.zaim.net で発行。未設定なら「Zaim連携」を出さない（#26） |
+| `ZAIM_TOKEN_ENCRYPTION_KEY` | Zaim アクセストークンの暗号化鍵 | 16文字以上。**変更すると連携し直しになる**（#26） |
+| `ZAIM_ALLOWED_EMAILS` | Zaim 連携を使ってよい Google アカウント | カンマ区切り。**未設定なら誰も使えない**（#26） |
 
 ### 環境変数（1Password `apps/Car` / 本番）
 
@@ -161,6 +166,9 @@
 | `SIGNALY_WEBHOOK_LOGIN_URL` | 通知（新規登録・ログイン共通） |
 | `TARGET_DIR` (`target-dir`) | VPS デプロイ先パス |
 | `PORT` (`port`) | 待受ポート |
+| `ZAIM_CONSUMER_KEY` (`zaim-consumer-key`) / `ZAIM_CONSUMER_SECRET` (`zaim-consumer-secret`) | Zaim API の OAuth 1.0a 鍵（#26） |
+| `ZAIM_TOKEN_ENCRYPTION_KEY` (`zaim-token-encryption-key`) | Zaim アクセストークンの暗号化鍵（#26） |
+| `ZAIM_ALLOWED_EMAILS` (`zaim-allowed-emails`) | Zaim 連携を使ってよい Google アカウント（#26） |
 | `OP_SERVICE_ACCOUNT_TOKEN` | GitHub Actions → 1Password |
 
 ---
@@ -184,6 +192,7 @@
 車両:     src/app/vehicles/, src/components/vehicle-form.tsx, src/components/vehicle-list.tsx, src/lib/vehicles.ts
 給油:     src/app/(app)/fuel/, src/components/fuel-*.tsx, src/lib/fuel-*.ts, src/app/api/gas-stations/route.ts
 メンテ:   src/app/(app)/maintenance/, src/components/maintenance-*.tsx, src/lib/maintenance-*.ts
+Zaim:     src/lib/zaim/, src/app/api/zaim/, src/app/(app)/settings/zaim-actions.ts, src/components/zaim-connection-settings.tsx, scripts/zaim-oauth-check.ts
 Signaly:  src/lib/signaly.ts
 DB:       prisma/schema.prisma, src/lib/prisma.ts, src/lib/database-url.ts
 ローカル環境: .env.local.example, scripts/with-local-env.sh, scripts/setup-db.sh（1Password 不要）
@@ -220,6 +229,7 @@ DevOps:   ecosystem.config.js, .github/workflows/ci.yml, .github/workflows/deplo
 
 | 日付 | 内容 |
 |------|------|
+| 2026-08-19 | 給油記録を家計簿アプリ Zaim の支出として自動登録できるようにした。Zaim API（OAuth 1.0a）の連携情報を `zaim_connections` にユーザーごとに保持し、アクセストークンは `ZAIM_TOKEN_ENCRYPTION_KEY` で暗号化して保存。`ZAIM_ALLOWED_EMAILS` に載せたアカウントにだけ機能を出す。給油履歴からの手動登録と、`fuel_logs.zaim_money_id` による二重登録防止つき（#26） |
 | 2026-08-17 | ログインを NextAuth（Auth.js）から Supabase Auth の Google 認証へ移行。`users.supabase_user_id` を追加し既存ユーザーをメールアドレスで紐付け。`ALLOWED_GOOGLE_EMAILS` による許可ユーザー判定を追加。パスキー（WebAuthn）ログインを廃止。`middleware.ts` を `proxy.ts` へ改称（#27） |
 | 2026-07-07 | ローカル開発を 1Password 不要に変更。DB・AUTH_SECRET・Signaly ログイン通知も `.env.local` で管理し、`scripts/with-local-env.sh` を新設（本番 DB 確認は引き続き `.env.op` / 1Password を使用）（#21） |
 | 2026-07-07 | Google OAuth を本番・開発で別クライアントに分離。開発用 Client ID/Secret は 1Password ではなく `.env.local`（`.env.local.example` 追加）で管理（#21） |
