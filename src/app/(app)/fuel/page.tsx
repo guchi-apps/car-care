@@ -17,6 +17,8 @@ import {
 } from "@/lib/registered-gas-stations";
 import { serializeFuelLogsForClient } from "@/lib/fuel-types";
 import { getVehicleSubtitle } from "@/lib/vehicle-display";
+import { isZaimAvailableFor } from "@/lib/zaim/config";
+import { getZaimConnection } from "@/lib/zaim/connection";
 import { getActiveVehicle } from "@/lib/vehicles";
 
 export default async function FuelPage() {
@@ -49,6 +51,12 @@ export default async function FuelPage() {
 
   const knownGasStations = userId ? await listKnownGasStationsForUser(userId) : [];
   const pickerGasStations = userId ? await listPickerGasStationsForUser(userId) : [];
+
+  // 連携していない人の履歴に Zaim の話は出さない。
+  const zaimEnabled =
+    userId && isZaimAvailableFor(user?.email)
+      ? (await getZaimConnection(userId)) !== null
+      : false;
 
   return (
     <main className="flex min-h-full flex-1 flex-col">
@@ -107,6 +115,7 @@ export default async function FuelPage() {
                 knownGasStations={knownGasStations}
                 pickerGasStations={pickerGasStations}
                 gasStationBrands={gasStationBrands}
+                zaimEnabled={zaimEnabled}
               />
             )}
           </>
