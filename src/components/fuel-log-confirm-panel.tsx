@@ -1,8 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 
-import type { FuelLogRegisteredSummary } from "@/app/(app)/fuel/actions";
+import {
+  registerFuelLogToZaimAction,
+  type FuelLogRegisteredSummary,
+} from "@/app/(app)/fuel/actions";
+import type { ZaimSyncResult } from "@/lib/zaim/fuel-sync";
 import {
   formatCurrency,
   formatDistanceKmValue,
@@ -14,11 +19,81 @@ import { formatDateJa } from "@/lib/vehicle-display";
 
 type FuelLogConfirmPanelProps = {
   summary: FuelLogRegisteredSummary;
+  zaim?: ZaimSyncResult;
   onRecordAnother?: () => void;
 };
 
+/**
+ * Zaim への登録結果。連携していない・自動登録がオフのときは何も出さない
+ * （使っていない人の画面に Zaim の話を出さないため）。
+ */
+function ZaimResultRow({
+  fuelLogId,
+  zaim,
+}: {
+  fuelLogId: string;
+  zaim: ZaimSyncResult;
+}) {
+  const [result, setResult] = useState<ZaimSyncResult>(zaim);
+  const [sending, setSending] = useState(false);
+
+  async function handleRetry() {
+    setSending(true);
+    const state = await registerFuelLogToZaimAction(fuelLogId);
+    setResult(
+      state.zaim ?? {
+        status: "failed",
+        message: state.error ?? "Zaimへの登録に失敗しました",
+      },
+    );
+    setSending(false);
+  }
+
+  if (result.status === "unavailable" || result.status === "auto-off") {
+    return null;
+  }
+
+  if (result.status === "registered" || result.status === "already") {
+    return (
+      <div className="mt-4 rounded-lg border border-lime-200 bg-lime-50 px-3 py-2.5 text-sm dark:border-lime-800 dark:bg-lime-950/40">
+        <p className="font-medium text-slate-900 dark:text-slate-100">
+          {result.status === "registered"
+            ? "Zaimに登録しました"
+            : "Zaimにはすでに登録済みです"}
+        </p>
+        {result.target && (
+          <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">
+            {result.target}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm dark:border-red-800 dark:bg-red-950/50">
+      <p className="font-medium text-slate-900 dark:text-slate-100">
+        Zaimに登録できませんでした
+      </p>
+      <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">
+        給油記録は保存されています。
+        {result.message ? `（${result.message}）` : ""}
+      </p>
+      <button
+        type="button"
+        onClick={handleRetry}
+        disabled={sending}
+        className="app-btn-secondary mt-2 min-h-9 py-1.5 text-sm"
+      >
+        {sending ? "登録中..." : "Zaimに登録"}
+      </button>
+    </div>
+  );
+}
+
 export function FuelLogConfirmPanel({
   summary,
+  zaim,
   onRecordAnother,
 }: FuelLogConfirmPanelProps) {
   const date = new Date(summary.date);
@@ -91,6 +166,8 @@ export function FuelLogConfirmPanel({
           )}
         </div>
       </dl>
+
+      {zaim && <ZaimResultRow fuelLogId={summary.fuelLogId} zaim={zaim} />}
 
       <div className="mt-4 flex gap-2">
         <Link href="/fuel" className="app-btn-primary min-h-11 flex-1 text-center text-sm">

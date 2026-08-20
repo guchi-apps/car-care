@@ -104,6 +104,37 @@ npm run dev:prod-db:tunnel
 `accounts` / `sessions` / `verification_tokens` / `authenticators` と `users.email_verified` は
 旧 NextAuth の残骸で、現在は誰も読み書きしていない（切り戻し余地を残すため残置。DROP は別 Issue）。
 
+## Zaim 連携（#26）
+
+給油記録を家計簿アプリ Zaim の支出として登録する。**Zaim の公式 API（OAuth 1.0a・HMAC-SHA1）を直接叩く。**
+asset-manager / aide が Zaim に対して Playwright を使っているのは「残高の読み取り」で、こちらは書き込み
+なので同じ方式にする必要はない（VPS は 2GB しかなく、リクエスト中に Chromium を起動できない）。
+
+| 役割 | ファイル |
+|---|---|
+| 鍵と許可メールの判定 | `src/lib/zaim/config.ts` |
+| OAuth 1.0a の署名 | `src/lib/zaim/oauth.ts` |
+| アクセストークンの暗号化 | `src/lib/zaim/secret-box.ts` |
+| API 呼び出し | `src/lib/zaim/client.ts` |
+| 連携情報のユーザー単位の読み書き | `src/lib/zaim/connection.ts` |
+| 給油記録 → 支出の登録 | `src/lib/zaim/fuel-sync.ts` |
+| 連携の開始・コールバック | `src/app/api/zaim/{connect,callback}/route.ts` |
+
+触るときに引っかかりやすい点:
+
+- **署名を変えたら `npx tsx scripts/zaim-oauth-check.ts` を通す。** OAuth 1.0a は間違えても
+  「401 が返る」以上のことが分からず、鍵の無い環境では切り分けられない。既知のテストベクタで
+  署名だけを検算できるようにしてある
+- **POST のボディは署名した文字列と 1 バイトも変えてはいけない。** `URLSearchParams` で組み直すと
+  空白が `+` になり署名が合わなくなる（OAuth の仕様では `%20`）
+- **`ZAIM_*` が 4 つ揃っていない環境では連携 UI を出さない。** 未設定でも画面が壊れないようにするため。
+  判定は `isZaimAvailableFor(email)` の 1 か所に寄せてある
+- **Zaim が落ちても給油記録の保存は成功させる。** `registerFuelLogToZaim()` は例外を投げず status を返す。
+  家計簿の都合で車の記録を落とさない
+- **二重登録は `fuel_logs.zaim_money_id` の有無で防ぐ。** 給油記録の編集・削除は Zaim 側へ反映しない
+  （現時点では意図的にスコープ外）
+- **`ZAIM_TOKEN_ENCRYPTION_KEY` を変えると保存済みトークンを復号できない。** 全員が連携し直しになる
+
 # マルチエージェント運用（GitHub Actions 無人実行）
 
 `@claude` コメントを起点に、計画提示〜実装〜develop向けPR作成までを GitHub Actions 上で無人実行する。
