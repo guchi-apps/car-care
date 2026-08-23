@@ -135,6 +135,29 @@ asset-manager / aide が Zaim に対して Playwright を使っているのは�
   （現時点では意図的にスコープ外）
 - **`ZAIM_TOKEN_ENCRYPTION_KEY` を変えると保存済みトークンを復号できない。** 全員が連携し直しになる
 
+## 本番デプロイとDBユーザー
+
+本番の共有 MariaDB では、アプリのランタイムが使う通常ユーザー（`SHARED_DB_USER`）に `ALTER` 権限が
+無い。DDL を伴う処理はマイグレーション専用ユーザー（`SHARED_DB_MIGRATE_USER` /
+`SHARED_DB_MIGRATE_PASSWORD`。organization の Secrets で全アプリ共通）で実行する。
+
+`.github/workflows/deploy.yml` の `deploy` ジョブで、専用ユーザーへ切り替えているのは次の2か所。
+
+- `npx prisma migrate deploy`
+- `node scripts/reconcile-migrations-deploy.mjs`（`scripts/migration-repairs.mjs` の `ALTER TABLE` を実行しうる）
+
+触るときに引っかかりやすい点:
+
+- **テーブル追加だけのマイグレーションは通常ユーザーでも通ってしまう。** 列を足す変更を入れて初めて
+  `ALTER command denied`（MySQL 1142）で落ちるため、気付くのがデプロイ時になる（#91）
+- **失敗した記録が `_prisma_migrations` に残ると、以降どのデプロイも同じ場所で止まる**（Prisma の
+  P3018）。`reconcile-migrations-deploy.mjs` が未完了の記録をロールバック扱いにして復帰させている
+- **`reconcile-migrations-deploy.mjs` は `import "dotenv/config"` を使う。** dotenv は既存の環境変数を
+  上書きしないので、`deploy.yml` 側で `DB_USER=... node ...` と前置きすれば `.env`（通常ユーザー）より
+  優先される。逆に `.env` を書き換えて切り替えようとしてはいけない（ランタイムの接続情報が変わる）
+- **`MIGRATE_*` が未設定の環境では通常ユーザーへフォールバックする。** Secrets を持たない fork や
+  検証用リポジトリでもデプロイ手順が壊れないようにするため
+
 # マルチエージェント運用（GitHub Actions 無人実行）
 
 `@claude` コメントを起点に、計画提示〜実装〜develop向けPR作成までを GitHub Actions 上で無人実行する。
