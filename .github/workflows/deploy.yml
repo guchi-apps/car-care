@@ -237,6 +237,8 @@ jobs:
           DB_HOST: ${{ env.DB_HOST }}
           DB_PORT: ${{ env.DB_PORT }}
           DB_NAME: ${{ env.DB_NAME }}
+          MIGRATE_DB_USER: ${{ env.MIGRATE_DB_USER }}
+          MIGRATE_DB_PASSWORD: ${{ env.MIGRATE_DB_PASSWORD }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ env.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
           ALLOWED_GOOGLE_EMAILS: ${{ env.ALLOWED_GOOGLE_EMAILS }}
@@ -251,7 +253,7 @@ jobs:
           username: ${{ env.USERNAME }}
           key: ${{ env.SSH_PRIVATE_KEY }}
           port: ${{ env.SSH_PORT }}
-          envs: DATABASE_URL,MIGRATE_DATABASE_URL,DB_USER,DB_PASSWORD,DB_HOST,DB_PORT,DB_NAME,NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,ALLOWED_GOOGLE_EMAILS,SIGNALY_WEBHOOK_LOGIN_URL,ZAIM_CONSUMER_KEY,ZAIM_CONSUMER_SECRET,ZAIM_TOKEN_ENCRYPTION_KEY,ZAIM_ALLOWED_EMAILS,TARGET_DIR
+          envs: DATABASE_URL,MIGRATE_DATABASE_URL,DB_USER,DB_PASSWORD,DB_HOST,DB_PORT,DB_NAME,MIGRATE_DB_USER,MIGRATE_DB_PASSWORD,NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,ALLOWED_GOOGLE_EMAILS,SIGNALY_WEBHOOK_LOGIN_URL,ZAIM_CONSUMER_KEY,ZAIM_CONSUMER_SECRET,ZAIM_TOKEN_ENCRYPTION_KEY,ZAIM_ALLOWED_EMAILS,TARGET_DIR
           script: |
             set -euo pipefail
             cd "${TARGET_DIR}"
@@ -294,8 +296,15 @@ jobs:
             echo "Installing production dependencies..."
             npm install --omit=dev --no-audit --prefer-offline
 
+            # スキーマ整合スクリプトも `ALTER TABLE` を実行しうるため、`migrate deploy` と同じく
+            # マイグレーション専用ユーザーで動かす（#31。通常ユーザーには ALTER 権限が無い）。
+            # dotenv は既存の環境変数を上書きしないので、ここで渡した値が .env より優先される。
+            # 未設定の環境では従来どおり通常ユーザーへフォールバックする。
             echo "Reconciling schema drift before migrations..."
-            node scripts/reconcile-migrations-deploy.mjs
+            DB_USER="${MIGRATE_DB_USER:-$DB_USER}" \
+            DB_PASSWORD="${MIGRATE_DB_PASSWORD:-$DB_PASSWORD}" \
+            DATABASE_URL="${MIGRATE_DATABASE_URL:-$DATABASE_URL}" \
+              node scripts/reconcile-migrations-deploy.mjs
 
             echo "Applying database migrations..."
             DATABASE_URL="${MIGRATE_DATABASE_URL:-$DATABASE_URL}" npx prisma migrate deploy
