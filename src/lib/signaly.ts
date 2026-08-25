@@ -1,24 +1,29 @@
 import { headers } from "next/headers";
 
-// 通知の送信元。ログイン通知は全アプリ共通の1チャンネルへ集約されており、チャンネルでは
-// どのアプリへのログインか分からないため、Signalyはこの値で送信元を見分ける
-// （guchi-apps/signaly#192）。CI・デプロイ通知が embed の Repository フィールド
-// （guchi-apps/<repo>）から作る送信元と揃うよう、リポジトリ名にする。
-const SIGNALY_SOURCE = "car-care";
+/**
+ * Signaly へのログイン通知。
+ *
+ * **フォーマットの正は signaly の `docs/webhook.md`「ログイン通知の共通フォーマット」。**
+ * ログイン通知は全アプリで1本のチャンネルへ集約しているため、ここだけ独自の形にすると、
+ * 並べたときに同じ種類の通知に見えない。**このファイルで変えてよいのは `APP_NAME` と
+ * Webhook URL の環境変数名だけ**で、残りは全アプリ共通のテンプレート
+ * （guchi-apps/signaly#204）。
+ *
+ * **フィールド名 `接続元IP` を変えないこと。** Signaly はこの名前を手がかりに
+ * 「見覚えのない接続元からのログインか」を判定し、初めての接続元なら通知を黄色にする。
+ * 名前を変えるとこの警告が黙って効かなくなる。
+ */
+const APP_NAME = "Car Care"; // 通知に出すアプリ名。他アプリへ流用する場合はここだけ変更する
 
-async function getClientInfo() {
-  const headersList = await headers();
-  const forwarded = headersList.get("x-forwarded-for");
-  const clientIp =
-    forwarded?.split(",")[0]?.trim() ??
-    headersList.get("x-real-ip") ??
-    "unknown";
-  const userAgent = headersList.get("user-agent") ?? "unknown";
-  return { clientIp, userAgent };
-}
+const COLOR_LOGIN = "#57f287";
+const MAX_VALUE_LEN = 500;
 
-function formatJstTimestamp(): string {
-  return new Date().toLocaleString("ja-JP", {
+type SignalyField = { name: string; value: string; inline: boolean };
+
+// sv-SE ロケールは `2026-08-25 14:03:22` を返す。ja-JP だと `2026/8/25 14:03:22` になり、
+// 月日がゼロ埋めされず桁が揃わないため使わない。
+function jstTimestamp(): string {
+  const text = new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Asia/Tokyo",
     year: "numeric",
     month: "2-digit",
@@ -27,51 +32,62 @@ function formatJstTimestamp(): string {
     minute: "2-digit",
     second: "2-digit",
     hour12: false,
-  });
+  }).format(new Date());
+  return `${text} JST`;
 }
 
-async function sendSignalyWebhook(
-  webhookUrl: string | undefined,
-  content: string,
+export async function notifySignalyLogin(
+  options: {
+    email?: string | null;
+    name?: string | null;
+    provider?: string | null;
+  } = {}
 ): Promise<void> {
+  const webhookUrl = process.env.SIGNALY_WEBHOOK_LOGIN_URL;
   if (!webhookUrl) {
-    console.warn("[signaly] Webhook URL is not configured; skipping notification.");
+    console.warn("[signaly] SIGNALY_WEBHOOK_LOGIN_URL が未設定のため、ログイン通知を送りません");
     return;
   }
+
+  const headersList = await headers();
+  const ip =
+    headersList.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    headersList.get("x-real-ip");
+  const userAgent = headersList.get("user-agent");
+
+  // 値が取れない項目は「不明」と書かず、フィールドごと落とす。「不明」を並べると
+  // どのアプリでも行数は揃うが、実際に取れている情報が読み取れなくなる。
+  const fields: SignalyField[] = [];
+  const push = (name: string, value: string | null | undefined, inline: boolean) => {
+    if (value) fields.push({ name, value: value.slice(0, MAX_VALUE_LEN), inline });
+  };
+
+  push("ユーザー", options.name, true);
+  push("メール", options.email, true);
+  push("プロバイダ", options.provider, true);
+  push("接続元IP", ip, true);
+  fields.push({ name: "日時", value: jstTimestamp(), inline: false });
+  push("User-Agent", userAgent, false);
 
   try {
     const response = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ source: SIGNALY_SOURCE, content }),
+      body: JSON.stringify({
+        // 集約先のチャンネルではチャンネルで送信元を見分けられないため、必ず載せる
+        source: APP_NAME,
+        title: `🔐 ${APP_NAME} ログイン`,
+        level: "info",
+        color: COLOR_LOGIN,
+        fields,
+      }),
     });
-
     if (!response.ok) {
       console.error(
-        `[signaly] Webhook failed: ${response.status} ${response.statusText}`,
+        `[signaly] ログイン通知に失敗しました: ${response.status} ${response.statusText}`
       );
     }
   } catch (error) {
-    console.error("[signaly] Failed to send webhook:", error);
+    console.error("[signaly] ログイン通知の送信に失敗しました:", error);
   }
-}
-
-export async function notifySignalyLogin(options: {
-  email?: string | null;
-  name?: string | null;
-}): Promise<void> {
-  const { clientIp, userAgent } = await getClientInfo();
-  const timestamp = formatJstTimestamp();
-
-  const content = [
-    "🔐 Car Care にログインしました",
-    `**日時**: ${timestamp} (JST)`,
-    `**メール**: ${options.email ?? "不明"}`,
-    `**名前**: ${options.name ?? "不明"}`,
-    "**認証方式**: Google（Supabase Auth）",
-    `**IP**: ${clientIp}`,
-    `**User-Agent**: ${userAgent}`,
-  ].join("\n");
-
-  await sendSignalyWebhook(process.env.SIGNALY_LOGIN_WEBHOOK_URL, content);
 }
