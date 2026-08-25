@@ -59,7 +59,7 @@ cp .env.local.example .env.local
 
 `service_role` キーはフロントエンドにもリポジトリにも置きません。
 
-`SIGNALY_WEBHOOK_LOGIN_URL` は任意です（未設定ならログイン通知をスキップします）。フィールド一覧は [`.env.local.example`](./.env.local.example) を参照してください。
+`SIGNALY_LOGIN_WEBHOOK_URL` は任意です（未設定ならログイン通知をスキップします）。フィールド一覧は [`.env.local.example`](./.env.local.example) を参照してください。
 
 ### 3. データベース
 

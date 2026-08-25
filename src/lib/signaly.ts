@@ -1,5 +1,11 @@
 import { headers } from "next/headers";
 
+// 通知の送信元。ログイン通知は全アプリ共通の1チャンネルへ集約されており、チャンネルでは
+// どのアプリへのログインか分からないため、Signalyはこの値で送信元を見分ける
+// （guchi-apps/signaly#192）。CI・デプロイ通知が embed の Repository フィールド
+// （guchi-apps/<repo>）から作る送信元と揃うよう、リポジトリ名にする。
+const SIGNALY_SOURCE = "car-care";
+
 async function getClientInfo() {
   const headersList = await headers();
   const forwarded = headersList.get("x-forwarded-for");
@@ -37,7 +43,7 @@ async function sendSignalyWebhook(
     const response = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({ source: SIGNALY_SOURCE, content }),
     });
 
     if (!response.ok) {
@@ -67,5 +73,5 @@ export async function notifySignalyLogin(options: {
     `**User-Agent**: ${userAgent}`,
   ].join("\n");
 
-  await sendSignalyWebhook(process.env.SIGNALY_WEBHOOK_LOGIN_URL, content);
+  await sendSignalyWebhook(process.env.SIGNALY_LOGIN_WEBHOOK_URL, content);
 }
