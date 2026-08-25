@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
 
   await linkSupabaseUser({ supabaseUserId: user.id, email: email!, name, image });
 
-  await notifySignalyLogin({ email, name });
+  await notifySignalyLogin({ email, name, provider: user.app_metadata?.provider ?? null });
 
   return NextResponse.redirect(`${origin}${next}`);
 }
