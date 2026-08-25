@@ -77,7 +77,7 @@
 | Google ログイン | ✅ | Supabase Auth 経由（#27）。`/auth/signin` → Google → `/auth/callback` |
 | 許可外 Google アカウントの拒否 | ✅ | `ALLOWED_GOOGLE_EMAILS`。拒否時は users を作らず Supabase セッションも破棄（#27） |
 | パスキー登録 → 2回目以降顔認証ログイン | 🚫 | Supabase Auth 移行に伴い廃止（#27） |
-| Signaly ログイン通知（新規登録・既存ログイン共通） | ✅ | `/auth/callback` → `SIGNALY_WEBHOOK_LOGIN_URL`（Discord から移行済み） |
+| Signaly ログイン通知（新規登録・既存ログイン共通） | ✅ | `/auth/callback` → `SIGNALY_LOGIN_WEBHOOK_URL`（Discord から移行済み） |
 | 未ログイン時の認証ガード | ✅ | `src/proxy.ts`（Next.js 16 で `middleware.ts` から改称） |
 
 ### ② 給油・燃費可視化 & ガソリンスタンド検索
@@ -150,7 +150,7 @@
 | `DB_NAME`, `DB_USER`, `DB_PASSWORD` | ローカル DB 認証 | 値は自由。`npm run db:setup` でユーザー・DB 作成 |
 | `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase Auth（開発用プロジェクト） | 本番用とは別プロジェクト（#27）。`service_role` キーは使わない |
 | `ALLOWED_GOOGLE_EMAILS` | ログインを許可する Google アカウント | カンマ区切り。**未設定だと誰もログインできない**（#27） |
-| `SIGNALY_WEBHOOK_LOGIN_URL` | 通知（新規登録・ログイン共通） | 任意。未設定なら通知をスキップ |
+| `SIGNALY_LOGIN_WEBHOOK_URL` | 通知（新規登録・ログイン共通） | 任意。未設定なら通知をスキップ |
 | `ZAIM_CONSUMER_KEY` / `ZAIM_CONSUMER_SECRET` | Zaim API の OAuth 1.0a 鍵 | https://dev.zaim.net で発行。未設定なら「Zaim連携」を出さない（#26） |
 | `ZAIM_TOKEN_ENCRYPTION_KEY` | Zaim アクセストークンの暗号化鍵 | 16文字以上。**変更すると連携し直しになる**（#26） |
 | `ZAIM_ALLOWED_EMAILS` | Zaim 連携を使ってよい Google アカウント | カンマ区切り。**未設定なら誰も使えない**（#26） |
@@ -163,7 +163,7 @@
 | `SSH_HOST`, `SSH_USER`, `SSH_PORT` | 本番 DB SSH トンネル |
 | `ALLOWED_GOOGLE_EMAILS` (`allowed-google-emails`) | ログインを許可する Google アカウント（#27） |
 | `AUTH_URL` | 公開 URL（アプリからは参照しない。Supabase の Redirect URLs 登録・Apache VirtualHost 生成で使う） |
-| `SIGNALY_WEBHOOK_LOGIN_URL` | 通知（新規登録・ログイン共通） |
+| `SIGNALY_LOGIN_WEBHOOK_URL` | 通知（新規登録・ログイン共通）。全アプリ共通のため organization secret から渡る（値の正は `op://apps/Notify/login-webhook-url`） |
 | `TARGET_DIR` (`target-dir`) | VPS デプロイ先パス |
 | `PORT` (`port`) | 待受ポート |
 | `ZAIM_CONSUMER_KEY` (`zaim-consumer-key`) / `ZAIM_CONSUMER_SECRET` (`zaim-consumer-secret`) | Zaim API の OAuth 1.0a 鍵（#26） |
@@ -229,6 +229,7 @@ DevOps:   ecosystem.config.js, .github/workflows/ci.yml, .github/workflows/deplo
 
 | 日付 | 内容 |
 |------|------|
+| 2026-08-25 | ログイン通知の送信先を全アプリ共通の1チャンネルへ変更。Webhook URL を organization secret `SIGNALY_LOGIN_WEBHOOK_URL` から受け取る形にし（環境変数を `SIGNALY_WEBHOOK_LOGIN_URL` から改名）、通知のペイロードへ送信元を表す `source: "car-care"` を追加（#119） |
 | 2026-08-19 | 給油記録を家計簿アプリ Zaim の支出として自動登録できるようにした。Zaim API（OAuth 1.0a）の連携情報を `zaim_connections` にユーザーごとに保持し、アクセストークンは `ZAIM_TOKEN_ENCRYPTION_KEY` で暗号化して保存。`ZAIM_ALLOWED_EMAILS` に載せたアカウントにだけ機能を出す。給油履歴からの手動登録と、`fuel_logs.zaim_money_id` による二重登録防止つき（#26） |
 | 2026-08-17 | ログインを NextAuth（Auth.js）から Supabase Auth の Google 認証へ移行。`users.supabase_user_id` を追加し既存ユーザーをメールアドレスで紐付け。`ALLOWED_GOOGLE_EMAILS` による許可ユーザー判定を追加。パスキー（WebAuthn）ログインを廃止。`middleware.ts` を `proxy.ts` へ改称（#27） |
 | 2026-07-07 | ローカル開発を 1Password 不要に変更。DB・AUTH_SECRET・Signaly ログイン通知も `.env.local` で管理し、`scripts/with-local-env.sh` を新設（本番 DB 確認は引き続き `.env.op` / 1Password を使用）（#21） |
