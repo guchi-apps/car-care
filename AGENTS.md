@@ -225,6 +225,12 @@ Status = 今どこにいるか、Label = どんな性質・条件があるか、
 `npm run build`（`build:ci` ではない方）は `scripts/with-local-env.sh` を通すためローカル環境の
 `.env` を要求する。**CI・無人実行では `build:ci` を使う。**
 
+`next/headers` を使うサーバー専用モジュール（`src/lib/signaly.ts` など）は、開発サーバーを起動しなくても
+tsx で単体実行して振る舞いを確かめられる。`next/headers` をスタブへ差し替える `paths` を書いた
+tsconfig を作り、`npx tsx --tsconfig <その tsconfig> <検証スクリプト>` で読み込む
+（送信先はローカルに立てた `node:http` のサーバーにして、実際のボディを目視する）。
+Webhook の送信ボディのように「型は通るが値が違う」類の変更は、これが最も軽い確認手段になる（#119）。
+
 ## 自動マージ不可カテゴリ
 
 以下に該当する変更は自動マージせず `00.check-user` を付与してユーザーの確認を待つ。
