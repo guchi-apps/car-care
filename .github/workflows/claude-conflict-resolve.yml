@@ -66,7 +66,7 @@ on:
 
 jobs:
   conflict-resolve:
-    uses: guchi-apps/issue-deck/.github/workflows/reusable-claude-conflict-resolve.yml@workflows/v28
+    uses: guchi-apps/issue-deck/.github/workflows/reusable-claude-conflict-resolve.yml@workflows/v29
     with:
       # car-careはNext.js + Prisma + MariaDBのため node-db（claude-issue-dispatch.ymlと揃える）。
       runtime-setup: node-db
@@ -89,7 +89,7 @@ jobs:
       # YAMLの折りたたみ(>-)は改行を半角スペースへ変換し日本語の途中に空白が入るため、1行で書く。
       verify-commands: "`npm run lint` と `npm run build:ci` を実行し、問題がないことを確認する（`.github/workflows/ci.yml`と同じ2つで、このリポジトリにtest・typecheckのnpm scriptは存在しない。DBサーバーは実際には起動していないが、環境変数はこのステップに既に設定済みのためCIのbuildステップと同様に成功するはず）"
       # 上の uses: と同じタグを指定する。
-      prompts-ref: workflows/v28
+      prompts-ref: workflows/v29
     # CLAUDE_CODE_OAUTH_TOKEN・WORKFLOW_PAT・PROGRESS_REPORT_SECRETを呼ばれる側へ渡す。
     secrets: inherit
     permissions:
