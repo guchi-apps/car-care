@@ -120,10 +120,14 @@ CI に `rsvg-convert` / `convert` は要らない。
 
 触るときに引っかかりやすい点:
 
-- **アイコンの PNG は差し替えるときにファイル名も変える。** `public/sw.js` は PNG を
-  cache-first で持つ（`isStaticAsset`）。キャッシュ名は `package.json` の version から作るため、
-  バージョンを上げずにデプロイすると、同じ URL のままでは古いアイコンが表示され続ける。
-  `icon-192-v2.png` のように名前を変えれば確実に切り替わる
+- **アイコンの PNG はファイル名を変えずに中身だけ差し替えてよい**（#132 の計画レビュー）。
+  `public/sw.js` は PNG を cache-first で持つ（`isStaticAsset`）が、キャッシュ名は
+  `package.json` の version 込みで、`activate` で他のキャッシュを全部消す。本番リリースでは
+  必ずバージョンが上がる（`.github/workflows/version-tag-check.yml` が据え置きを落とす）ため、
+  デプロイ時点で古いアイコンのキャッシュは消える。`public/` のアセットに長期キャッシュを
+  付けている場所も無い（`next.config.ts` の `headers()` は `/sw.js` だけ）。
+  **バージョンを上げずにローカルで確認するときだけ**、SW のキャッシュに古い PNG が残る。
+  その場合は DevTools の Application → Service Workers で unregister する
 - **`app-mark.tsx` は `icon.template.svg` の写し。** 片方だけ直すとアイコンと画面がずれる。
   グラデーションの `id` は 1 ページに 2 つ置いても衝突しないよう `idPrefix` で分ける
   （`useId` はサーバーコンポーネントで使えない）

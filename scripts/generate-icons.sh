@@ -41,9 +41,9 @@ render 116 1 0 "$icons/icon.svg"
 # マスカブル: 角丸なしの全面塗り。マークは安全領域（中央 80%）に収まるよう縮める
 render 0 0.76 61.44 "$icons/icon-maskable.svg"
 
-rsvg-convert -w 192 -h 192 "$icons/icon.svg" -o "$icons/icon-192-v2.png"
-rsvg-convert -w 512 -h 512 "$icons/icon.svg" -o "$icons/icon-512-v2.png"
-rsvg-convert -w 512 -h 512 "$icons/icon-maskable.svg" -o "$icons/icon-512-maskable-v2.png"
+rsvg-convert -w 192 -h 192 "$icons/icon.svg" -o "$icons/icon-192.png"
+rsvg-convert -w 512 -h 512 "$icons/icon.svg" -o "$icons/icon-512.png"
+rsvg-convert -w 512 -h 512 "$icons/icon-maskable.svg" -o "$icons/icon-512-maskable.png"
 
 for size in 16 32 48; do
   rsvg-convert -w "$size" -h "$size" "$icons/icon.svg" -o "$tmp/favicon-$size.png"
