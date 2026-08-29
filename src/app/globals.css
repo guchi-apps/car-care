@@ -153,6 +153,114 @@ body {
   }
 }
 
+/*
+  ブランド面（ログイン画面と起動画面の背景）。アイコンの地色と同じ青でそろえている。
+  @layer の外に置いているのは、ダークの上書きを確実に効かせるため。
+*/
+.app-brand-surface {
+  background: linear-gradient(158deg, #2f66e8 0%, #1a3fae 55%, #0d2a74 100%);
+}
+
+@media (prefers-color-scheme: dark) {
+  .app-brand-surface {
+    background: linear-gradient(158deg, #16223c 0%, #0c1424 55%, #060a14 100%);
+  }
+}
+
+/* ---- 起動中のローディング画面（PWA から起動したときだけ表示する） ---- */
+#app-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+  transition:
+    opacity 320ms ease,
+    visibility 0s linear 320ms;
+  /*
+    保険。ハイドレーションが終わらず data-app-ready が立たない場合でも、
+    起動画面が残り続けてアプリを操作できなくなることがないようにする。
+  */
+  animation: app-splash-timeout 1ms linear 8s forwards;
+}
+
+@media (display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui) {
+  #app-splash {
+    display: flex;
+  }
+}
+
+html[data-app-ready] #app-splash {
+  opacity: 0;
+  visibility: hidden;
+}
+
+@keyframes app-splash-timeout {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+.app-splash-inner {
+  display: grid;
+  justify-items: center;
+  gap: 1.25rem;
+}
+
+.app-splash-mark {
+  width: 5.75rem;
+  height: 5.75rem;
+  border-radius: 22.6%;
+  box-shadow: 0 24px 52px -18px rgba(0, 0, 0, 0.72);
+}
+
+.app-splash-name {
+  margin: 0;
+  color: #ffffff;
+  font-size: 1.1875rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  padding-left: 0.18em;
+}
+
+.app-splash-bar {
+  position: relative;
+  width: 8rem;
+  height: 0.25rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.16);
+  overflow: hidden;
+}
+
+.app-splash-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #5eead4, #7dd3fc);
+  animation: app-splash-slide 1.3s ease-in-out infinite;
+}
+
+@keyframes app-splash-slide {
+  from {
+    transform: translateX(-110%);
+  }
+  to {
+    transform: translateX(265%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-splash-bar::after {
+    animation: none;
+    width: 62%;
+  }
+}
+
 @keyframes app-bottom-nav-hint-fade-in {
   to {
     opacity: 0.45;
