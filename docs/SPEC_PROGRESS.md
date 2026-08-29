@@ -46,6 +46,8 @@
 | WebAuthn / Passkey | 🚫 | Supabase Auth 移行に伴い廃止（#27）。`authenticators` テーブルは切り戻し用に残置 |
 | Signaly Webhook（ログイン通知） | ✅ | `src/lib/signaly.ts`, `src/app/auth/callback/route.ts` |
 | PWA | ⚠️ | `public/manifest.json`, `public/sw.js`, `public/icons/`, `app-bottom-nav.tsx`, `app-page.tsx` |
+| アプリアイコン | ✅ | `scripts/icon.template.svg` が原本。`npm run generate:icons` で `public/icons/*` と `src/app/favicon.ico` を書き出す（#132） |
+| 起動中のローディング画面（PWA） | ✅ | `src/components/app-splash.tsx`, `src/app/globals.css`（`display-mode: standalone` のときだけ表示）（#132） |
 | pm2 | ✅ | `ecosystem.config.js`（本番 PORT 3104 既定） |
 | GitHub Actions → VPS SSH デプロイ | ⚠️ | `.github/workflows/deploy.yml`（**1Password・VPS 初回設定後に検証**） |
 
