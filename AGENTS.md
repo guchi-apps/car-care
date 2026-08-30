@@ -104,6 +104,41 @@ npm run dev:prod-db:tunnel
 `accounts` / `sessions` / `verification_tokens` / `authenticators` と `users.email_verified` は
 旧 NextAuth の残骸で、現在は誰も読み書きしていない（切り戻し余地を残すため残置。DROP は別 Issue）。
 
+## アイコンと起動画面（#132）
+
+アプリアイコンの原本は `scripts/icon.template.svg` の 1 ファイルで、`public/icons/*.svg` と
+`*.png`・`src/app/favicon.ico` は `npm run generate:icons` が書き出す（`generate-sw.mjs` と
+`sw.template.js` の関係と同じ）。書き出した結果はコミットする。**ビルドでは実行しない**ので、
+CI に `rsvg-convert` / `convert` は要らない。
+
+| 役割 | ファイル |
+|---|---|
+| アイコンの原本（ここだけを編集する） | `scripts/icon.template.svg` |
+| 書き出し | `scripts/generate-icons.sh`（`npm run generate:icons`） |
+| 画面で使う同じ絵柄 | `src/components/app-mark.tsx` |
+| PWA 起動中のローディング画面 | `src/components/app-splash.tsx`, `src/app/globals.css` |
+
+触るときに引っかかりやすい点:
+
+- **アイコンの PNG はファイル名を変えずに中身だけ差し替えてよい**（#132 の計画レビュー）。
+  `public/sw.js` は PNG を cache-first で持つ（`isStaticAsset`）が、キャッシュ名は
+  `package.json` の version 込みで、`activate` で他のキャッシュを全部消す。本番リリースでは
+  必ずバージョンが上がる（`.github/workflows/version-tag-check.yml` が据え置きを落とす）ため、
+  デプロイ時点で古いアイコンのキャッシュは消える。`public/` のアセットに長期キャッシュを
+  付けている場所も無い（`next.config.ts` の `headers()` は `/sw.js` だけ）。
+  **バージョンを上げずにローカルで確認するときだけ**、SW のキャッシュに古い PNG が残る。
+  その場合は DevTools の Application → Service Workers で unregister する
+- **`app-mark.tsx` は `icon.template.svg` の写し。** 片方だけ直すとアイコンと画面がずれる。
+  グラデーションの `id` は 1 ページに 2 つ置いても衝突しないよう `idPrefix` で分ける
+  （`useId` はサーバーコンポーネントで使えない）
+- **起動画面の表示・非表示は CSS で決めている。** `@media (display-mode: standalone)` のときだけ
+  表示し、ハイドレーション後に `<html data-app-ready>` が立つと消える。
+  **JS が動かなかった場合に備えて `animation: … 8s forwards` の保険を必ず残すこと。**
+  これが無いと、起動画面が残ったままアプリを操作できなくなる
+- **Tailwind v4 で `h-6.5` のような値は生成されない**（`.5` 刻みは一部だけ）。クラス名を書き
+  間違えてもビルドは通り、CSS が出ないだけで無言で崩れる。新しい値を使ったら
+  `curl` で `/_next/static/chunks/*.css` を取って、その宣言が出ているかを確かめるのが速い
+
 ## Zaim 連携（#26）
 
 給油記録を家計簿アプリ Zaim の支出として登録する。**Zaim の公式 API（OAuth 1.0a・HMAC-SHA1）を直接叩く。**

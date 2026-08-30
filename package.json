@@ -1,6 +1,6 @@
 {
   "name": "car-care",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "private": true,
   "engines": {
     "node": ">=20.19.0"
@@ -10,6 +10,7 @@
     "build": "bash scripts/with-local-env.sh sh -c 'prisma generate && node scripts/generate-sw.mjs && next build'",
     "build:ci": "prisma generate && node scripts/generate-sw.mjs && next build",
     "generate:sw": "node scripts/generate-sw.mjs",
+    "generate:icons": "bash scripts/generate-icons.sh",
     "start": "bash scripts/with-local-env.sh next start",
     "start:prod": "NODE_ENV=production next start",
     "lint": "eslint",
