@@ -1,6 +1,6 @@
 {
   "name": "car-care",
-  "version": "2.3.1",
+  "version": "2.3.2",
   "private": true,
   "engines": {
     "node": ">=20.19.0"
