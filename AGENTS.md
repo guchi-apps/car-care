@@ -180,9 +180,10 @@ AIDE 経由で Zaim の Web 版（my.zaim.net）の入力画面から行う。
   毎回変わり、一度決めた内訳が二度と当たらなくなる
 - **`ASSET_MANAGER_IMPORT_SECRET` が無い環境では連携 UI を出さない。** 未設定でも画面が壊れない
   ようにするため。判定は `isKakeiboAvailableFor(email)` の 1 か所に寄せてある
-- **`zaim_connections` テーブルは名前がそのまま残っている。** モデル名は `KakeiboSetting` で、
-  OAuth 時代の列（`access_token` 系・`category_*`・`genre_*`・`account_id`・`zaim_user_*`）は
-  切り戻し余地のため残置している（DROP とテーブルの改名は別 Issue）
+- **テーブルは `kakeibo_settings`、モデル名は `KakeiboSetting`。** OAuth 時代（#26）の列は #146 で
+  DROP 済みで、残っているのは「自動で送るか」「支払元カード名」「最後に送った日時」だけ。
+  一方で環境変数は `ZAIM_ALLOWED_EMAILS` のまま（1Password・`secrets-manifest.tsv`・`deploy.yml`・
+  VPS の `.env` が連動するため据え置き）
 
 ## 本番デプロイとDBユーザー
 
