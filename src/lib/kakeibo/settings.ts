@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 /**
  * 家計簿連携の設定の読み書き。**すべてログイン中のユーザー ID で絞る。**
  *
- * 設定は 1 ユーザー 1 件（`zaim_connections.user_id` は unique）。行が無いユーザーは
+ * 設定は 1 ユーザー 1 件（`kakeibo_settings.user_id` は unique）。行が無いユーザーは
  * 既定値で扱い、保存したときに初めて行を作る（OAuth の連携という手順が無くなったため、
  * 「行があること」を連携済みの印には使えない）。
  */

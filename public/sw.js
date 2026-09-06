@@ -1,6 +1,6 @@
 // Generated from scripts/sw.template.js — do not edit public/sw.js directly.
-// @version 2.3.2
-const CACHE_NAME = "car-care-v2.3.2";
+// @version 3.0.0
+const CACHE_NAME = "car-care-v3.0.0";
 
 const PRECACHE_URLS = ["/manifest.json"];
 

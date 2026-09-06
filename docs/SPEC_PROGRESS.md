@@ -66,7 +66,7 @@
 | `fuel_logs` | ✅ | ✅ | ✅ CRUD + ダッシュボード (`/fuel`) |
 | `gas_station_brands` | ✅ | ✅ | ✅ 設定画面 CRUD |
 | `registered_gas_stations` | ✅ | ✅ `20250621260000` | ✅ 設定画面 CRUD・給油フォーム連携 |
-| `zaim_connections` | ✅ | ✅ `20260819000000_zaim_connection` / `20260906000000_kakeibo_send_to_asset_manager` | ✅ 設定画面の「家計簿連携」（ユーザーごとに1件）。Prisma のモデル名は `KakeiboSetting`。OAuth 時代の列は残置（#26・#141） |
+| `kakeibo_settings` | ✅ | ✅ `20260819000000_zaim_connection` / `20260906000000_kakeibo_send_to_asset_manager` / `20260906100000_kakeibo_settings_cleanup` | ✅ 設定画面の「家計簿連携」（ユーザーごとに1件）。Prisma のモデル名は `KakeiboSetting`。旧名 `zaim_connections`・OAuth 時代の列は #146 で整理（#26・#141・#146） |
 
 ---
 
