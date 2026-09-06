@@ -31,7 +31,7 @@ model User {
   maintenanceCategories MaintenanceCategory[]
   gasStationBrands      GasStationBrand[]
   registeredGasStations RegisteredGasStation[]
-  zaimConnection        ZaimConnection?
+  kakeiboSetting        KakeiboSetting?
 
   @@map("users")
 }
@@ -221,7 +221,11 @@ model FuelLog {
   gasStationName   String?  @map("gas_station_name")
   gasStationBrands String?  @map("gas_station_brands")
   gasStationOsmId  String?  @map("gas_station_osm_id")
+  /// Asset Manager 側の取り込み ID（#141）。家計簿へ送ったかどうかはこれで判定する。
+  assetManagerReceiptId String? @map("asset_manager_receipt_id")
+  /// OAuth 時代（#26）に Zaim へ直接登録した明細の ID。新しい記録には入らない。
   zaimMoneyId      String?  @map("zaim_money_id")
+  /// 家計簿へ送った日時（#141 より前は Zaim へ登録した日時）。
   zaimRegisteredAt DateTime? @map("zaim_registered_at")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
@@ -231,31 +235,38 @@ model FuelLog {
   @@map("fuel_logs")
 }
 
-/// Zaim（家計簿）との連携情報。**ユーザーごとに1件**持つ。
+/// 家計簿（Zaim）連携の設定。**ユーザーごとに1件**持つ。
 ///
-/// 給油記録を Zaim の支出として登録するために、OAuth 1.0a のアクセストークンを保持する。
-/// トークンはパスワード相当のため、ZAIM_TOKEN_ENCRYPTION_KEY で暗号化した文字列を入れる
-/// （src/lib/zaim/secret-box.ts）。平文を書かないこと。
+/// car-care は Zaim へ直接書かない。給油記録を Asset Manager へ送るかどうかと、送るときの
+/// 支払元カード名だけをここに持つ（#141）。Zaim への登録は Asset Manager 側で行われる。
 ///
-/// カテゴリ・ジャンル・口座の ID は Zaim 側で採番された値で、人によって異なる。連携後に
-/// Zaim から取得した一覧から選ばせ、表示用に名前も控えておく（毎回 API を叩かないため）。
-model ZaimConnection {
-  id                String    @id @default(cuid())
-  userId            String    @unique @map("user_id")
-  zaimUserId        String?   @map("zaim_user_id")
-  zaimUserName      String?   @map("zaim_user_name")
-  accessToken       String    @map("access_token") @db.Text
-  accessTokenSecret String    @map("access_token_secret") @db.Text
-  autoRegister      Boolean   @default(true) @map("auto_register")
-  categoryId        String?   @map("category_id")
-  categoryName      String?   @map("category_name")
-  genreId           String?   @map("genre_id")
-  genreName         String?   @map("genre_name")
-  accountId         String?   @map("account_id")
-  accountName       String?   @map("account_name")
-  lastRegisteredAt  DateTime? @map("last_registered_at")
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
+/// テーブル名が `zaim_connections` のままなのは、OAuth 時代（#26）の列を切り戻しの余地として
+/// 残しているため。使っていない列（`access_token` 系・`category_*`・`genre_*`・`account_id`・
+/// `zaim_user_*`）の DROP とテーブルの改名は別 Issue で行う。
+model KakeiboSetting {
+  id     String @id @default(cuid())
+  userId String @unique @map("user_id")
+
+  /// 給油を記録したら自動で家計簿へ送るか。
+  autoSend Boolean @default(true) @map("auto_register")
+  /// 支払元の Zaim 口座名。Asset Manager へ accountHint として渡す。
+  cardAccountName String? @map("account_name")
+  /// 最後に家計簿へ送った日時。
+  lastSentAt DateTime? @map("last_registered_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  /// ここから下は OAuth 時代の残骸で、誰も読み書きしていない（#141）。
+  zaimUserId        String? @map("zaim_user_id")
+  zaimUserName      String? @map("zaim_user_name")
+  accessToken       String? @map("access_token") @db.Text
+  accessTokenSecret String? @map("access_token_secret") @db.Text
+  categoryId        String? @map("category_id")
+  categoryName      String? @map("category_name")
+  genreId           String? @map("genre_id")
+  genreName         String? @map("genre_name")
+  accountId         String? @map("account_id")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

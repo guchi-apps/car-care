@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 
 import { getCurrentUser, requireUserId } from "@/lib/auth-user";
 import { OTHER_GAS_STATION_BRAND_NAME } from "@/lib/gas-station-brand-types";
@@ -29,10 +30,46 @@ import {
 import { upsertRegisteredGasStationFromFuelLog } from "@/lib/registered-gas-stations";
 import { computeFuelEfficiencyForLog } from "@/lib/fuel-stats";
 import { getVehicleForUser } from "@/lib/vehicles";
+import { isKakeiboAvailableFor } from "@/lib/kakeibo/config";
+import { getKakeiboSettingView } from "@/lib/kakeibo/settings";
 import {
-  registerFuelLogToZaim,
-  type ZaimSyncResult,
-} from "@/lib/zaim/fuel-sync";
+  sendFuelLogToKakeibo,
+  type KakeiboSendResult,
+} from "@/lib/kakeibo/fuel-send";
+
+/**
+ * 家計簿への送信は応答を待たない。
+ *
+ * Asset Manager は内訳が決まっている支出をその場で Zaim の Web 版へ登録するため、応答までに
+ * ヘッドレスブラウザの操作（数十秒）が入る。給油の保存でそれを待たせると、スタンドで記録する
+ * という使い方が壊れる。`after()` で応答を返したあとに送り、結果は履歴の「家計簿へ送る」で
+ * 拾い直せるようにする（送り直しても Asset Manager 側が externalId で弾く）。
+ */
+async function scheduleKakeiboSend(
+  userId: string,
+  userEmail: string | null,
+  fuelLogId: string,
+): Promise<KakeiboSendResult> {
+  if (!isKakeiboAvailableFor(userEmail)) {
+    return { status: "unavailable" };
+  }
+
+  const setting = await getKakeiboSettingView(userId);
+
+  if (!setting.autoSend) {
+    return { status: "auto-off" };
+  }
+
+  after(async () => {
+    const result = await sendFuelLogToKakeibo(userId, userEmail, fuelLogId);
+
+    if (result.status === "failed") {
+      console.error("[kakeibo] 自動送信に失敗:", result.message);
+    }
+  });
+
+  return { status: "queued", target: setting.cardAccountName ?? undefined };
+}
 
 export type FuelLogRegisteredSummary = {
   fuelLogId: string;
@@ -52,8 +89,8 @@ export type FuelActionState = {
   error?: string;
   resetToken?: number;
   registered?: FuelLogRegisteredSummary;
-  /** Zaim へ登録したかどうか。連携していないときは付かない。 */
-  zaim?: ZaimSyncResult;
+  /** 家計簿へ送ったかどうか。連携していないときは付かない。 */
+  kakeibo?: KakeiboSendResult;
 };
 
 function parseDate(value: FormDataEntryValue | null) {
@@ -365,9 +402,9 @@ export async function createFuelLogAction(
       osmId: parsed.data.gasStationOsmId,
     });
 
-    // Zaim への登録は「おまけ」で、失敗しても給油記録の登録は成功とする
-    // （家計簿の都合で車の記録を落とさない）。結果は画面に出す。
-    const zaim = await registerFuelLogToZaim(userId, user.email, created.id);
+    // 家計簿への送信は「おまけ」で、失敗しても給油記録の登録は成功とする
+    // （家計簿の都合で車の記録を落とさない）。
+    const kakeibo = await scheduleKakeiboSend(userId, user.email, created.id);
 
     revalidatePath("/fuel");
     revalidatePath("/fuel/new");
@@ -377,7 +414,7 @@ export async function createFuelLogAction(
     return {
       ok: true,
       resetToken: Date.now(),
-      zaim,
+      kakeibo,
       registered: {
         fuelLogId: created.id,
         date: parsed.data.date.toISOString(),
@@ -490,12 +527,14 @@ export async function deleteFuelLogsAction(
 }
 
 /**
- * 給油履歴の「Zaimに登録」から呼ぶ。
+ * 給油履歴の「家計簿へ送る」から呼ぶ。
  *
- * 自動登録がオフのとき・登録に失敗したとき・連携より前につけた記録を、あとから 1 件ずつ送る。
- * すでに登録済みの記録は二重に入らない（fuel-sync.ts が zaim_money_id を見る）。
+ * 自動送信がオフのとき・送信に失敗したとき・連携より前につけた記録を、あとから 1 件ずつ送る。
+ * すでに送信済みの記録は二重に入らない（fuel-send.ts が asset_manager_receipt_id を見る）。
+ *
+ * こちらは利用者が押して待つ操作なので、`createFuelLogAction` と違って応答を待つ。
  */
-export async function registerFuelLogToZaimAction(
+export async function sendFuelLogToKakeiboAction(
   fuelLogId: string,
 ): Promise<FuelActionState> {
   try {
@@ -505,24 +544,28 @@ export async function registerFuelLogToZaimAction(
       return { ok: false, error: "認証が必要です" };
     }
 
-    const zaim = await registerFuelLogToZaim(user.id, user.email, fuelLogId, {
+    const kakeibo = await sendFuelLogToKakeibo(user.id, user.email, fuelLogId, {
       manual: true,
     });
 
-    if (zaim.status === "failed" || zaim.status === "not-configured") {
-      return { ok: false, error: zaim.message ?? "Zaimへの登録に失敗しました", zaim };
+    if (kakeibo.status === "failed") {
+      return {
+        ok: false,
+        error: kakeibo.message ?? "家計簿へ送信できませんでした",
+        kakeibo,
+      };
     }
 
-    if (zaim.status === "unavailable") {
-      return { ok: false, error: "Zaimと連携していません", zaim };
+    if (kakeibo.status === "unavailable") {
+      return { ok: false, error: "家計簿連携を利用できません", kakeibo };
     }
 
     revalidatePath("/fuel");
     revalidatePath("/settings");
 
-    return { ok: true, resetToken: Date.now(), zaim };
+    return { ok: true, resetToken: Date.now(), kakeibo };
   } catch (error) {
-    console.error("[zaim] 履歴からの登録に失敗:", error);
-    return { ok: false, error: "Zaimへの登録に失敗しました" };
+    console.error("[kakeibo] 履歴からの送信に失敗:", error);
+    return { ok: false, error: "家計簿へ送信できませんでした" };
   }
 }

@@ -4,10 +4,10 @@ import Link from "next/link";
 import { useState } from "react";
 
 import {
-  registerFuelLogToZaimAction,
+  sendFuelLogToKakeiboAction,
   type FuelLogRegisteredSummary,
 } from "@/app/(app)/fuel/actions";
-import type { ZaimSyncResult } from "@/lib/zaim/fuel-sync";
+import type { KakeiboSendResult } from "@/lib/kakeibo/fuel-send";
 import {
   formatCurrency,
   formatDistanceKmValue,
@@ -19,31 +19,35 @@ import { formatDateJa } from "@/lib/vehicle-display";
 
 type FuelLogConfirmPanelProps = {
   summary: FuelLogRegisteredSummary;
-  zaim?: ZaimSyncResult;
+  kakeibo?: KakeiboSendResult;
   onRecordAnother?: () => void;
 };
 
 /**
- * Zaim への登録結果。連携していない・自動登録がオフのときは何も出さない
- * （使っていない人の画面に Zaim の話を出さないため）。
+ * 家計簿への送信結果。連携していない・自動送信がオフのときは何も出さない
+ * （使っていない人の画面に家計簿の話を出さないため）。
+ *
+ * 自動送信は応答を待たずに走るため（`fuel/actions.ts` の `scheduleKakeiboSend`）、
+ * 保存直後は `queued` になる。ボタンを押すと結果を取りに行き、送信済みなら
+ * Asset Manager 側が重複として返すので二重登録にはならない。
  */
-function ZaimResultRow({
+function KakeiboResultRow({
   fuelLogId,
-  zaim,
+  kakeibo,
 }: {
   fuelLogId: string;
-  zaim: ZaimSyncResult;
+  kakeibo: KakeiboSendResult;
 }) {
-  const [result, setResult] = useState<ZaimSyncResult>(zaim);
+  const [result, setResult] = useState<KakeiboSendResult>(kakeibo);
   const [sending, setSending] = useState(false);
 
-  async function handleRetry() {
+  async function handleSend() {
     setSending(true);
-    const state = await registerFuelLogToZaimAction(fuelLogId);
+    const state = await sendFuelLogToKakeiboAction(fuelLogId);
     setResult(
-      state.zaim ?? {
+      state.kakeibo ?? {
         status: "failed",
-        message: state.error ?? "Zaimへの登録に失敗しました",
+        message: state.error ?? "家計簿へ送信できませんでした",
       },
     );
     setSending(false);
@@ -53,13 +57,13 @@ function ZaimResultRow({
     return null;
   }
 
-  if (result.status === "registered" || result.status === "already") {
+  if (result.status === "sent" || result.status === "already") {
     return (
       <div className="mt-4 rounded-lg border border-lime-200 bg-lime-50 px-3 py-2.5 text-sm dark:border-lime-800 dark:bg-lime-950/40">
         <p className="font-medium text-slate-900 dark:text-slate-100">
-          {result.status === "registered"
-            ? "Zaimに登録しました"
-            : "Zaimにはすでに登録済みです"}
+          {result.status === "sent"
+            ? "家計簿に登録しました"
+            : "家計簿にはすでに送信済みです"}
         </p>
         {result.target && (
           <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">
@@ -70,10 +74,36 @@ function ZaimResultRow({
     );
   }
 
+  if (result.status === "queued" || result.status === "pending") {
+    return (
+      <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800/60">
+        <p className="font-medium text-slate-900 dark:text-slate-100">
+          {result.status === "queued"
+            ? "家計簿アプリへ送信しています"
+            : "家計簿アプリで確認待ちです"}
+        </p>
+        <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">
+          {result.status === "queued"
+            ? "登録まで少し時間がかかります。"
+            : "家計簿アプリで内訳を確認すると登録されます。"}
+          {result.message ? `（${result.message}）` : ""}
+        </p>
+        <button
+          type="button"
+          onClick={handleSend}
+          disabled={sending}
+          className="app-btn-secondary mt-2 min-h-9 py-1.5 text-sm"
+        >
+          {sending ? "確認中..." : "送信状況を確認"}
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm dark:border-red-800 dark:bg-red-950/50">
       <p className="font-medium text-slate-900 dark:text-slate-100">
-        Zaimに登録できませんでした
+        家計簿へ送信できませんでした
       </p>
       <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">
         給油記録は保存されています。
@@ -81,11 +111,11 @@ function ZaimResultRow({
       </p>
       <button
         type="button"
-        onClick={handleRetry}
+        onClick={handleSend}
         disabled={sending}
         className="app-btn-secondary mt-2 min-h-9 py-1.5 text-sm"
       >
-        {sending ? "登録中..." : "Zaimに登録"}
+        {sending ? "送信中..." : "家計簿へ送る"}
       </button>
     </div>
   );
@@ -93,7 +123,7 @@ function ZaimResultRow({
 
 export function FuelLogConfirmPanel({
   summary,
-  zaim,
+  kakeibo,
   onRecordAnother,
 }: FuelLogConfirmPanelProps) {
   const date = new Date(summary.date);
@@ -167,7 +197,9 @@ export function FuelLogConfirmPanel({
         </div>
       </dl>
 
-      {zaim && <ZaimResultRow fuelLogId={summary.fuelLogId} zaim={zaim} />}
+      {kakeibo && (
+        <KakeiboResultRow fuelLogId={summary.fuelLogId} kakeibo={kakeibo} />
+      )}
 
       <div className="mt-4 flex gap-2">
         <Link href="/fuel" className="app-btn-primary min-h-11 flex-1 text-center text-sm">

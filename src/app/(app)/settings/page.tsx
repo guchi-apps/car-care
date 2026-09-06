@@ -3,7 +3,7 @@ import { AppPage } from "@/components/app-page";
 import { GasStationBrandSettings } from "@/components/gas-station-brand-settings";
 import { MaintenanceCategorySettings } from "@/components/maintenance-category-settings";
 import { RegisteredGasStationSettings } from "@/components/registered-gas-station-settings";
-import { ZaimConnectionSettings } from "@/components/zaim-connection-settings";
+import { KakeiboSettings } from "@/components/kakeibo-settings";
 import { APP_VERSION } from "@/lib/app-version";
 import { getCurrentUser } from "@/lib/auth-user";
 import { ensureGasStationBrandsForUser } from "@/lib/gas-station-brands";
@@ -12,28 +12,10 @@ import {
   getMaintenanceLogCountsByCategoryId,
 } from "@/lib/maintenance-categories";
 import { ensureRegisteredGasStationsForUser } from "@/lib/registered-gas-stations";
-import { isZaimAvailableFor } from "@/lib/zaim/config";
-import { getZaimConnectionView } from "@/lib/zaim/connection";
-import { loadZaimOptionsForUser } from "@/lib/zaim/options";
+import { isKakeiboAvailableFor } from "@/lib/kakeibo/config";
+import { getKakeiboSettingView } from "@/lib/kakeibo/settings";
 
-const zaimNotices: Record<string, { kind: "success" | "error"; text: string }> = {
-  connected: { kind: "success", text: "Zaimと連携しました。支出の登録先を選んでください。" },
-  cancelled: { kind: "error", text: "Zaimとの連携を中断しました。" },
-  connect_failed: {
-    kind: "error",
-    text: "Zaimとの連携に失敗しました。時間をおいてもう一度お試しください。",
-  },
-  forbidden: {
-    kind: "error",
-    text: "このアカウントではZaim連携を利用できません。",
-  },
-};
-
-export default async function SettingsPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
+export default async function SettingsPage() {
   const user = await getCurrentUser();
   const userId = user?.id;
   const brands = userId ? await ensureGasStationBrandsForUser(userId) : [];
@@ -47,19 +29,10 @@ export default async function SettingsPage({
     ? await getMaintenanceLogCountsByCategoryId(userId)
     : {};
 
-  // Zaim 連携は鍵が設定されていて、かつ ZAIM_ALLOWED_EMAILS に載っているアカウントにだけ出す。
-  const zaimAvailable = isZaimAvailableFor(user?.email);
-  const zaimConnection =
-    userId && zaimAvailable ? await getZaimConnectionView(userId) : null;
-  const zaimOptions =
-    userId && zaimConnection
-      ? await loadZaimOptionsForUser(userId)
-      : { options: null, error: null };
-
-  const params = await searchParams;
-  const rawZaimNotice = params.zaim;
-  const zaimNotice =
-    typeof rawZaimNotice === "string" ? (zaimNotices[rawZaimNotice] ?? null) : null;
+  // 家計簿連携は送信先が設定されていて、かつ ZAIM_ALLOWED_EMAILS に載っているアカウントにだけ出す。
+  const kakeiboAvailable = isKakeiboAvailableFor(user?.email);
+  const kakeiboSetting =
+    userId && kakeiboAvailable ? await getKakeiboSettingView(userId) : null;
 
   return (
     <main className="flex min-h-full flex-1 flex-col">
@@ -84,14 +57,7 @@ export default async function SettingsPage({
           logCountByCategoryId={maintenanceLogCountByCategoryId}
         />
 
-        {zaimAvailable && (
-          <ZaimConnectionSettings
-            connection={zaimConnection}
-            options={zaimOptions.options}
-            optionsError={zaimOptions.error}
-            notice={zaimNotice}
-          />
-        )}
+        {kakeiboSetting && <KakeiboSettings setting={kakeiboSetting} />}
 
         <section className="app-card-muted p-6">
           <h2 className="text-sm font-medium text-slate-900 dark:text-slate-100">
