@@ -172,7 +172,7 @@ export async function sendFuelLogToKakeibo(
         assetManagerReceiptId: response.receiptId
           ? String(response.receiptId)
           : "unknown",
-        zaimRegisteredAt: sentAt,
+        kakeiboSentAt: sentAt,
       },
     });
 

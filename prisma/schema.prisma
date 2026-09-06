@@ -226,7 +226,7 @@ model FuelLog {
   /// OAuth 時代（#26）に Zaim へ直接登録した明細の ID。新しい記録には入らない。
   zaimMoneyId      String?  @map("zaim_money_id")
   /// 家計簿へ送った日時（#141 より前は Zaim へ登録した日時）。
-  zaimRegisteredAt DateTime? @map("zaim_registered_at")
+  kakeiboSentAt    DateTime? @map("kakeibo_sent_at")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
@@ -239,36 +239,21 @@ model FuelLog {
 ///
 /// car-care は Zaim へ直接書かない。給油記録を Asset Manager へ送るかどうかと、送るときの
 /// 支払元カード名だけをここに持つ（#141）。Zaim への登録は Asset Manager 側で行われる。
-///
-/// テーブル名が `zaim_connections` のままなのは、OAuth 時代（#26）の列を切り戻しの余地として
-/// 残しているため。使っていない列（`access_token` 系・`category_*`・`genre_*`・`account_id`・
-/// `zaim_user_*`）の DROP とテーブルの改名は別 Issue で行う。
 model KakeiboSetting {
   id     String @id @default(cuid())
   userId String @unique @map("user_id")
 
   /// 給油を記録したら自動で家計簿へ送るか。
-  autoSend Boolean @default(true) @map("auto_register")
+  autoSend Boolean @default(true) @map("auto_send")
   /// 支払元の Zaim 口座名。Asset Manager へ accountHint として渡す。
   cardAccountName String? @map("account_name")
   /// 最後に家計簿へ送った日時。
-  lastSentAt DateTime? @map("last_registered_at")
+  lastSentAt DateTime? @map("last_sent_at")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  /// ここから下は OAuth 時代の残骸で、誰も読み書きしていない（#141）。
-  zaimUserId        String? @map("zaim_user_id")
-  zaimUserName      String? @map("zaim_user_name")
-  accessToken       String? @map("access_token") @db.Text
-  accessTokenSecret String? @map("access_token_secret") @db.Text
-  categoryId        String? @map("category_id")
-  categoryName      String? @map("category_name")
-  genreId           String? @map("genre_id")
-  genreName         String? @map("genre_name")
-  accountId         String? @map("account_id")
-
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("zaim_connections")
+  @@map("kakeibo_settings")
 }
