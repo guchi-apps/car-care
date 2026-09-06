@@ -139,36 +139,50 @@ CI に `rsvg-convert` / `convert` は要らない。
   間違えてもビルドは通り、CSS が出ないだけで無言で崩れる。新しい値を使ったら
   `curl` で `/_next/static/chunks/*.css` を取って、その宣言が出ているかを確かめるのが速い
 
-## Zaim 連携（#26）
+## 家計簿（Zaim）連携（#26・#141）
 
-給油記録を家計簿アプリ Zaim の支出として登録する。**Zaim の公式 API（OAuth 1.0a・HMAC-SHA1）を直接叩く。**
-asset-manager / aide が Zaim に対して Playwright を使っているのは「残高の読み取り」で、こちらは書き込み
-なので同じ方式にする必要はない（VPS は 2GB しかなく、リクエスト中に Chromium を起動できない）。
+給油記録を家計簿の支出として登録する。**car-care は Zaim へ直接書かない。**
+Asset Manager（`guchi-apps/asset-manager`）の取り込み口へ送り、Zaim への登録は Asset Manager が
+AIDE 経由で Zaim の Web 版（my.zaim.net）の入力画面から行う。
+
+```
+給油記録の保存
+  └ POST <Asset Manager>/api/receipts/import（source: "car-care"）
+      └ Asset Manager が内訳を決める（分類履歴・確認画面）
+          └ AIDE が Zaim Web 版の入力画面から登録
+              └ カード明細が届いたら Zaim 標準の「置き換え」で統合する
+```
 
 | 役割 | ファイル |
 |---|---|
-| 鍵と許可メールの判定 | `src/lib/zaim/config.ts` |
-| OAuth 1.0a の署名 | `src/lib/zaim/oauth.ts` |
-| アクセストークンの暗号化 | `src/lib/zaim/secret-box.ts` |
-| API 呼び出し | `src/lib/zaim/client.ts` |
-| 連携情報のユーザー単位の読み書き | `src/lib/zaim/connection.ts` |
-| 給油記録 → 支出の登録 | `src/lib/zaim/fuel-sync.ts` |
-| 連携の開始・コールバック | `src/app/api/zaim/{connect,callback}/route.ts` |
+| 送信先と許可メールの判定 | `src/lib/kakeibo/config.ts` |
+| 取り込み口の呼び出し | `src/lib/kakeibo/client.ts` |
+| 自動送信のオンオフ・支払元カード名 | `src/lib/kakeibo/settings.ts` |
+| 給油記録 → 送信内容の組み立て | `src/lib/kakeibo/fuel-send.ts` |
 
 触るときに引っかかりやすい点:
 
-- **署名を変えたら `npx tsx scripts/zaim-oauth-check.ts` を通す。** OAuth 1.0a は間違えても
-  「401 が返る」以上のことが分からず、鍵の無い環境では切り分けられない。既知のテストベクタで
-  署名だけを検算できるようにしてある
-- **POST のボディは署名した文字列と 1 バイトも変えてはいけない。** `URLSearchParams` で組み直すと
-  空白が `+` になり署名が合わなくなる（OAuth の仕様では `%20`）
-- **`ZAIM_*` が 4 つ揃っていない環境では連携 UI を出さない。** 未設定でも画面が壊れないようにするため。
-  判定は `isZaimAvailableFor(email)` の 1 か所に寄せてある
-- **Zaim が落ちても給油記録の保存は成功させる。** `registerFuelLogToZaim()` は例外を投げず status を返す。
-  家計簿の都合で車の記録を落とさない
-- **二重登録は `fuel_logs.zaim_money_id` の有無で防ぐ。** 給油記録の編集・削除は Zaim 側へ反映しない
-  （現時点では意図的にスコープ外）
-- **`ZAIM_TOKEN_ENCRYPTION_KEY` を変えると保存済みトークンを復号できない。** 全員が連携し直しになる
+- **Zaim API で作った明細は「置き換え」候補に並ばない**（asset-manager#300 の実測）。品目・出金元・
+  日付・金額をまったく同じにしても並ばず、Web 版の入力画面で作った明細だけが並ぶ。分かれ目は
+  条件の中身ではなく**作成経路**にある。**「API の方が簡単だから」で戻してはいけない。**
+  戻すと、カード明細が届いても置き換えられない支出が家計簿に溜まり続ける
+- **Zaim の画面を操作できるのは AIDE だけ。** Playwright と Zaim のログイン状態を持っているのが
+  AIDE のため（asset-manager の `docs/zaim-auto-sync.md`「責務の分担」）。car-care から AIDE を
+  直接叩かないのは、確認画面・分類履歴・置き換えの管理を Asset Manager に一本化しているから
+- **自動送信は `after()` で応答の後に走らせる**（`src/app/(app)/fuel/actions.ts` の
+  `scheduleKakeiboSend`）。Asset Manager は内訳が決まっている支出をその場で Zaim Web 版へ登録
+  するため、応答までヘッドレスブラウザの操作（数十秒）が入る。給油の保存でそれを待たせない
+- **Asset Manager が落ちても給油記録の保存は成功させる。** `sendFuelLogToKakeibo()` は例外を
+  投げず status を返す。家計簿の都合で車の記録を落とさない
+- **二重送信は `fuel_logs.asset_manager_receipt_id` の有無で防ぐ**（#141 より前に Zaim API で
+  登録した記録は `zaim_money_id`）。送り直しても Asset Manager 側が `externalId` で弾く
+- **給油量は品名ではなく `usage` で渡す。** 品名に混ぜると Asset Manager の分類履歴のキーが
+  毎回変わり、一度決めた内訳が二度と当たらなくなる
+- **`ASSET_MANAGER_IMPORT_SECRET` が無い環境では連携 UI を出さない。** 未設定でも画面が壊れない
+  ようにするため。判定は `isKakeiboAvailableFor(email)` の 1 か所に寄せてある
+- **`zaim_connections` テーブルは名前がそのまま残っている。** モデル名は `KakeiboSetting` で、
+  OAuth 時代の列（`access_token` 系・`category_*`・`genre_*`・`account_id`・`zaim_user_*`）は
+  切り戻し余地のため残置している（DROP とテーブルの改名は別 Issue）
 
 ## 本番デプロイとDBユーザー
 

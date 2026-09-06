@@ -7,7 +7,7 @@ import { useActionState, useEffect, useState } from "react";
 import {
   deleteFuelLogAction,
   deleteFuelLogsAction,
-  registerFuelLogToZaimAction,
+  sendFuelLogToKakeiboAction,
   updateFuelLogAction,
   type FuelActionState,
 } from "@/app/(app)/fuel/actions";
@@ -37,8 +37,8 @@ type FuelListProps = {
   knownGasStations: KnownGasStation[];
   pickerGasStations: KnownGasStation[];
   gasStationBrands: GasStationBrandRecord[];
-  /** Zaim と連携済みのときだけ、登録状態のバッジと「Zaimに登録」を出す。 */
-  zaimEnabled?: boolean;
+  /** 家計簿連携が使えるときだけ、送信状態のバッジと「家計簿へ送る」を出す。 */
+  kakeiboEnabled?: boolean;
 };
 
 const initialState: FuelActionState = { ok: false };
@@ -129,7 +129,7 @@ function FuelLogCard({
   selectionMode,
   selected,
   onToggleSelect,
-  zaimEnabled,
+  kakeiboEnabled,
 }: {
   fuelLog: FuelLogClientRecord;
   fuelLogs: FuelLogClientRecord[];
@@ -141,31 +141,34 @@ function FuelLogCard({
   selectionMode: boolean;
   selected: boolean;
   onToggleSelect: () => void;
-  zaimEnabled: boolean;
+  kakeiboEnabled: boolean;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [zaimSending, setZaimSending] = useState(false);
-  const [zaimError, setZaimError] = useState<string | null>(null);
+  const [kakeiboSending, setKakeiboSending] = useState(false);
+  const [kakeiboError, setKakeiboError] = useState<string | null>(null);
   const efficiency = getEfficiencyForLog(fuelLog);
-  const registeredToZaim = Boolean(fuelLog.zaimMoneyId);
+  // zaim_money_id は OAuth 時代（#26）に Zaim へ直接登録した記録の印。送信済みの判定に残す。
+  const sentToKakeibo = Boolean(
+    fuelLog.assetManagerReceiptId ?? fuelLog.zaimMoneyId,
+  );
 
-  async function handleZaimRegister() {
-    setZaimSending(true);
-    setZaimError(null);
+  async function handleKakeiboSend() {
+    setKakeiboSending(true);
+    setKakeiboError(null);
 
-    const result = await registerFuelLogToZaimAction(fuelLog.id);
+    const result = await sendFuelLogToKakeiboAction(fuelLog.id);
 
     if (!result.ok) {
-      setZaimError(result.error ?? "Zaimへの登録に失敗しました");
-      setZaimSending(false);
+      setKakeiboError(result.error ?? "家計簿へ送信できませんでした");
+      setKakeiboSending(false);
       return;
     }
 
-    setZaimSending(false);
+    setKakeiboSending(false);
     router.refresh();
   }
 
@@ -258,15 +261,15 @@ function FuelLogCard({
             {fuelLog.gasStationBrands}
           </span>
         )}
-        {zaimEnabled && (
+        {kakeiboEnabled && (
           <span
             className={
-              registeredToZaim
+              sentToKakeibo
                 ? "inline-flex items-center rounded-full bg-lime-100 px-2.5 py-0.5 text-xs font-medium text-lime-800 dark:bg-lime-900/40 dark:text-lime-200"
                 : "inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500 dark:bg-slate-700 dark:text-slate-400"
             }
           >
-            {registeredToZaim ? "Zaim登録済み" : "Zaim未登録"}
+            {sentToKakeibo ? "家計簿へ送信済み" : "家計簿へ未送信"}
           </span>
         )}
       </div>
@@ -280,14 +283,14 @@ function FuelLogCard({
       {!editing && !selectionMode && !confirmingDelete && (
         <>
           <div className="mt-4 flex flex-wrap gap-2">
-            {zaimEnabled && !registeredToZaim && (
+            {kakeiboEnabled && !sentToKakeibo && (
               <button
                 type="button"
-                onClick={handleZaimRegister}
-                disabled={zaimSending}
+                onClick={handleKakeiboSend}
+                disabled={kakeiboSending}
                 className="app-btn-secondary border-lime-200 text-lime-800 hover:border-lime-300 hover:bg-lime-50 dark:border-lime-800 dark:text-lime-200 dark:hover:border-lime-700 dark:hover:bg-lime-950/50"
               >
-                {zaimSending ? "登録中..." : "Zaimに登録"}
+                {kakeiboSending ? "送信中..." : "家計簿へ送る"}
               </button>
             )}
             <button
@@ -305,7 +308,9 @@ function FuelLogCard({
               削除
             </button>
           </div>
-          {zaimError && <p className="app-alert-error mt-2">{zaimError}</p>}
+          {kakeiboError && (
+            <p className="app-alert-error mt-2">{kakeiboError}</p>
+          )}
         </>
       )}
 
@@ -343,7 +348,7 @@ export function FuelList({
   knownGasStations,
   pickerGasStations,
   gasStationBrands,
-  zaimEnabled = false,
+  kakeiboEnabled = false,
 }: FuelListProps) {
   const router = useRouter();
   const [selectionMode, setSelectionMode] = useState(false);
@@ -523,7 +528,7 @@ export function FuelList({
           selectionMode={selectionMode}
           selected={selectedIds.has(fuelLog.id)}
           onToggleSelect={() => toggleSelect(fuelLog.id)}
-          zaimEnabled={zaimEnabled}
+          kakeiboEnabled={kakeiboEnabled}
         />
       ))}
     </section>

@@ -53,7 +53,7 @@ export function FuelForm({
     return (
       <FuelLogConfirmPanel
         summary={state.registered}
-        zaim={state.zaim}
+        kakeibo={state.kakeibo}
         onRecordAnother={() => {
           setDismissedConfirmationToken(state.resetToken ?? null);
           setFormKey(String(Date.now()));
