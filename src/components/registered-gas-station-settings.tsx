@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useMemo, useState, type MouseEvent } from "react";
+import { useActionState, useMemo, useState, type MouseEvent } from "react";
 
 import {
   deleteRegisteredGasStationAction,
@@ -44,44 +44,18 @@ function RegisteredStationMapSection({
     lon?: number;
   }) => void;
 }) {
-  const [prefetchView, setPrefetchView] = useState<{ lat: number; lon: number } | null>(
-    null,
-  );
   const hasStoredLocation =
     station.latitude != null && station.longitude != null;
 
-  useEffect(() => {
-    if (!station.osmId) {
-      return;
-    }
-
-    let cancelled = false;
-
-    void fetch(`/api/gas-stations?osmId=${encodeURIComponent(station.osmId)}`)
-      .then((response) => (response.ok ? response.json() : null))
-      .then((data: { station?: { lat: number; lon: number } } | null) => {
-        if (cancelled || !data?.station) {
-          return;
-        }
-
-        setPrefetchView({
-          lat: data.station.lat,
-          lon: data.station.lon,
-        });
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [station.osmId]);
-
+  // osmId がある店舗の位置は GasStationMapPicker が initialFocusOsmId から自分で取得する。
+  // ここで同じ問い合わせを先に投げても、結果は使われず外部 API へのアクセスが増えるだけ（#185）。
   const initialFocusView = useMemo(() => {
-    if (hasStoredLocation) {
-      return { lat: station.latitude!, lon: station.longitude! };
+    if (!hasStoredLocation) {
+      return null;
     }
 
-    return prefetchView;
-  }, [hasStoredLocation, station.latitude, station.longitude, prefetchView]);
+    return { lat: station.latitude!, lon: station.longitude! };
+  }, [hasStoredLocation, station.latitude, station.longitude]);
 
   return (
     <>
