@@ -98,6 +98,11 @@ npm run dev:prod-db:tunnel
 - **`users.id` は Supabase の UUID ではない。** 車両・給油・メンテの外部キーが cuid の `users.id` を
   指しているため差し替えられない。Supabase のユーザー ID は `users.supabase_user_id` に持ち、
   移行前から居るユーザーは初回ログイン時にメールアドレスで紐付ける（`src/app/auth/callback/route.ts`）
+- **`supabase.auth.signOut()` を直接呼ばない。`signOutThisApp()`（`src/lib/supabase/sign-out.ts`）を通す。**
+  引数なしの `signOut()` は scope が `global` で、共有 Supabase を使う他アプリ・他端末の refresh token まで
+  失効させる。このアプリのセッションだけを捨てるので `local` を明示している（#169）。直接呼ぶ箇所が
+  残っていると `npm test` が落ちる。アカウントごと削除する操作を将来作るときだけ、全セッションを
+  終了する意図をコメントで明示して `global` を使う
 - **リダイレクト先の origin は Host ヘッダーから組む**（`src/lib/request-origin.ts`）。
   `request.url` は 0.0.0.0 待受や sslip.io 経由で実際のホスト名を反映しないことがある
 
@@ -263,14 +268,16 @@ Status = 今どこにいるか、Label = どんな性質・条件があるか、
 
 ## 検証コマンド
 
-**このリポジトリには `test`・`typecheck` の npm script が無い。** CI（`.github/workflows/ci.yml`）も
-`lint` と `build:ci` の2つだけを実行しており、`build:ci` の `next build` が型チェックを含むため
-これで完結している。**存在しないコマンドを探さず、下記を使うこと。**
+**`typecheck` の npm script は無い。** CI（`.github/workflows/ci.yml`）は `lint` と `build:ci` の2つだけを
+実行しており、`build:ci` の `next build` が型チェックを含むためこれで完結している。
+`test` は #169 で追加した `node:test` + `tsx` の最小構成で、**CI では実行していない**（ローカルで確認する）。
+テストランナー（vitest 等）は入れていない。**存在しないコマンドを探さず、下記を使うこと。**
 
 | 目的 | コマンド |
 |---|---|
 | Lint | `npm run lint` |
 | ビルド（型チェックを含む） | `npm run build:ci` |
+| 単体テスト（`src/**/*.test.ts`） | `npm test` |
 
 `npm run build`（`build:ci` ではない方）は `scripts/with-local-env.sh` を通すためローカル環境の
 `.env` を要求する。**CI・無人実行では `build:ci` を使う。**

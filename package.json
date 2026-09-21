@@ -14,6 +14,7 @@
     "start": "bash scripts/with-local-env.sh next start",
     "start:prod": "NODE_ENV=production next start",
     "lint": "eslint",
+    "test": "bash scripts/tsx.sh --test 'src/**/*.test.ts'",
     "postinstall": "prisma generate",
     "env:init": "cp -n .env.local.example .env.local && cp -n .env.op.example .env.op && echo 'Created .env.local (edit values, then: npm run db:setup && npm run dev). .env.op is only needed for db:*:prod.'",
     "env:check": "bash scripts/with-local-env.sh bash scripts/env-check.sh",

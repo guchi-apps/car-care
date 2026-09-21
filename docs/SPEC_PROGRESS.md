@@ -77,10 +77,11 @@
 | 要件 | 状態 | 備考 |
 |------|------|------|
 | Google ログイン | ✅ | Supabase Auth 経由（#27）。`/auth/signin` → Google → `/auth/callback` |
-| 許可外 Google アカウントの拒否 | ✅ | `ALLOWED_GOOGLE_EMAILS`。拒否時は users を作らず Supabase セッションも破棄（#27） |
+| 許可外 Google アカウントの拒否 | ✅ | `ALLOWED_GOOGLE_EMAILS`。拒否時は users を作らず、このアプリのセッションも破棄（#27）。破棄は `local` scope で他アプリのセッションは失効させない（#169） |
 | パスキー登録 → 2回目以降顔認証ログイン | 🚫 | Supabase Auth 移行に伴い廃止（#27） |
 | Signaly ログイン通知（新規登録・既存ログイン共通） | ✅ | `/auth/callback` → `SIGNALY_LOGIN_WEBHOOK_URL`（Discord から移行済み） |
 | 未ログイン時の認証ガード | ✅ | `src/proxy.ts`（Next.js 16 で `middleware.ts` から改称） |
+| ログアウト | ✅ | `POST /auth/signout`。`signOutThisApp()` が `local` scope で呼ぶため、共有 Supabase を使う他アプリ・他端末のログインは維持される（#169） |
 
 ### ② 給油・燃費可視化 & ガソリンスタンド検索
 
@@ -189,7 +190,7 @@
 ## 主要ファイル索引（Agent 用）
 
 ```
-認証:     src/proxy.ts, src/lib/supabase/, src/lib/auth-user.ts, src/lib/allowed-users.ts, src/lib/auth-header.ts, src/lib/request-origin.ts, src/app/auth/, src/app/login/
+認証:     src/proxy.ts, src/lib/supabase/（`sign-out.ts` = local scope のログアウト）, src/lib/auth-user.ts, src/lib/allowed-users.ts, src/lib/auth-header.ts, src/lib/request-origin.ts, src/app/auth/, src/app/login/
 車両:     src/app/vehicles/, src/components/vehicle-form.tsx, src/components/vehicle-list.tsx, src/lib/vehicles.ts
 給油:     src/app/(app)/fuel/, src/components/fuel-*.tsx, src/lib/fuel-*.ts, src/app/api/gas-stations/route.ts
 メンテ:   src/app/(app)/maintenance/, src/components/maintenance-*.tsx, src/lib/maintenance-*.ts
@@ -230,6 +231,7 @@ DevOps:   ecosystem.config.js, .github/workflows/ci.yml, .github/workflows/deplo
 
 | 日付 | 内容 |
 |------|------|
+| 2026-09-21 | ログアウトと許可外アカウントの拒否で、Supabase の `signOut()` を `local` scope に固定。既定の `global` だと共有 Supabase を使う他アプリ・他端末のセッションまで失効していた。`signOutThisApp()` に一本化し、直接呼び出しを検出する `npm test`（`node:test` + `tsx`）を追加（#169） |
 | 2026-09-06 | 給油記録の家計簿登録を、Zaim API での直接登録から Asset Manager 経由へ切り替えた。Zaim API で作った明細は Zaim アプリの「置き換え」候補に並ばず、カード明細で置き換えられないため（asset-manager#300）。car-care は `POST /api/receipts/import` へ送るだけにし、Zaim への登録は Asset Manager（AIDE 経由の Zaim Web 版）が行う。Zaim の OAuth 連携・カテゴリ選択と `ZAIM_CONSUMER_*` / `ZAIM_TOKEN_ENCRYPTION_KEY` を廃止し、`fuel_logs.asset_manager_receipt_id` を追加（#141） |
 | 2026-08-25 | ログイン通知の送信先を全アプリ共通の1チャンネルへ変更。Webhook URL を organization secret `SIGNALY_LOGIN_WEBHOOK_URL` から受け取る形にし（環境変数を `SIGNALY_WEBHOOK_LOGIN_URL` から改名）、通知のペイロードへ送信元を表す `source: "car-care"` を追加（#119） |
 | 2026-08-19 | 給油記録を家計簿アプリ Zaim の支出として自動登録できるようにした。Zaim API（OAuth 1.0a）の連携情報を `zaim_connections` にユーザーごとに保持し、アクセストークンは `ZAIM_TOKEN_ENCRYPTION_KEY` で暗号化して保存。`ZAIM_ALLOWED_EMAILS` に載せたアカウントにだけ機能を出す。給油履歴からの手動登録と、`fuel_logs.zaim_money_id` による二重登録防止つき（#26） |

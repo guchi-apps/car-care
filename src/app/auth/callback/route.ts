@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getRequestOrigin, safeNextPath } from "@/lib/request-origin";
 import { notifySignalyLogin } from "@/lib/signaly";
 import { createClient } from "@/lib/supabase/server";
+import { signOutThisApp } from "@/lib/supabase/sign-out";
 
 export async function GET(request: NextRequest) {
   const origin = getRequestOrigin(request);
@@ -32,9 +33,9 @@ export async function GET(request: NextRequest) {
 
   // 共有 Supabase プロジェクトを他アプリと共用しているため、Supabase でログインできることと
   // Car Care を使ってよいことは別に判定する。許可外のアカウントは Car Care 側のユーザーを
-  // 作らず、Supabase のセッションも破棄する。
+  // 作らず、このアプリのセッションも破棄する（他アプリのセッションは巻き込まない）。
   if (!isAllowedEmail(email)) {
-    await supabase.auth.signOut();
+    await signOutThisApp(supabase);
     return NextResponse.redirect(`${origin}/login?error=not_allowed`);
   }
 
