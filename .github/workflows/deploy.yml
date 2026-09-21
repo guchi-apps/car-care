@@ -153,7 +153,7 @@ jobs:
             scripts/prod-db-ping.mjs \
             scripts/reconcile-migrations-deploy.mjs \
             scripts/migration-repairs.mjs \
-            next.config.ts \
+            next.config.mjs \
             ecosystem.config.js
 
       - name: Upload artifact
@@ -257,7 +257,7 @@ jobs:
             PORT=3104
 
             echo "Cleaning up old release files..."
-            rm -rf .next public package.json package-lock.json prisma prisma.config.ts src/lib/database-url.ts deploy scripts/install-apache-vhost.sh next.config.ts ecosystem.config.js
+            rm -rf .next public package.json package-lock.json prisma prisma.config.ts src/lib/database-url.ts deploy scripts/install-apache-vhost.sh next.config.mjs next.config.ts ecosystem.config.js
 
             echo "Extracting archive..."
             tar -xzf deploy.tar.gz

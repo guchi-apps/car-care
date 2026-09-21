@@ -130,7 +130,7 @@ CI に `rsvg-convert` / `convert` は要らない。
   `package.json` の version 込みで、`activate` で他のキャッシュを全部消す。本番リリースでは
   必ずバージョンが上がる（`.github/workflows/version-tag-check.yml` が据え置きを落とす）ため、
   デプロイ時点で古いアイコンのキャッシュは消える。`public/` のアセットに長期キャッシュを
-  付けている場所も無い（`next.config.ts` の `headers()` は `/sw.js` だけ）。
+  付けている場所も無い（`next.config.mjs` の `headers()` は `/sw.js` だけ）。
   **バージョンを上げずにローカルで確認するときだけ**、SW のキャッシュに古い PNG が残る。
   その場合は DevTools の Application → Service Workers で unregister する
 - **`app-mark.tsx` は `icon.template.svg` の写し。** 片方だけ直すとアイコンと画面がずれる。

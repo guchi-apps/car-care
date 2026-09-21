@@ -1,4 +1,8 @@
-import type { NextConfig } from "next";
+// @ts-check
+// .mjs にしているのは、本番の `next start` が設定ファイルをトランスパイルするためだけに
+// SWC のネイティブバイナリを読み込み、常駐メモリとスレッドが増えるのを避けるため（#168）。
+// TypeScript（next.config.ts）に戻さない。型は JSDoc で付け、tsconfig.json の include で
+// tsc --noEmit の対象にしている。
 import path from "path";
 
 const projectRoot = path.resolve(process.cwd());
@@ -11,7 +15,8 @@ const devAllowedOrigins = [
     .filter(Boolean) ?? []),
 ];
 
-const nextConfig: NextConfig = {
+/** @type {import("next").NextConfig} */
+const nextConfig = {
   turbopack: {
     root: projectRoot,
   },
