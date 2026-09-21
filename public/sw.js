@@ -1,6 +1,6 @@
 // Generated from scripts/sw.template.js — do not edit public/sw.js directly.
-// @version 3.0.0
-const CACHE_NAME = "car-care-v3.0.0";
+// @version 4.0.7
+const CACHE_NAME = "car-care-v4.0.7";
 
 const PRECACHE_URLS = ["/manifest.json"];
 
@@ -60,14 +60,11 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  const isDocument = event.request.mode === "navigate";
-
-  if (isDocument) {
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => response)
-        .catch(() => caches.match(event.request)),
-    );
+  // HTML ドキュメント（ナビゲーション）はキャッシュせず、ブラウザの通常のネットワーク処理に任せる。
+  // ログイン必須でユーザーごとの内容を返すページなので、キャッシュに残すと古い内容や別ユーザーの
+  // 画面を出しかねない。オフライン用フォールバックも持たない（HTML を precache していないため、
+  // 以前の `caches.match` 経由のフォールバックは常に空振りしていた）。
+  if (event.request.mode === "navigate") {
     return;
   }
 

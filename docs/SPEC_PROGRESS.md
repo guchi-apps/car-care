@@ -117,7 +117,7 @@
 | 要件 | 状態 | 備考 |
 |------|------|------|
 | `manifest.json`（standalone, theme） | ✅ | `public/manifest.json` |
-| Service Worker | ✅ | `scripts/sw.template.js` → ビルド時 `public/sw.js`（`package.json` version でキャッシュ名）。更新検知・自動リロード (`service-worker-register.tsx`)。**開発中は登録しない** |
+| Service Worker | ✅ | `scripts/sw.template.js` → ビルド時 `public/sw.js`（`package.json` version でキャッシュ名）。更新検知・自動リロード (`service-worker-register.tsx`)。**開発中は登録しない**。HTML ドキュメントはキャッシュせず、オフライン用フォールバックも持たない（ログイン必須でユーザーごとの内容のため。#184）。静的アセットのみ cache-first |
 | モバイルファースト UI | ✅ | `app-bottom-nav.tsx`, `app-page.tsx`, `globals.css`（44px タップ・safe-area）, 全 `(app)` ページ |
 
 ---
