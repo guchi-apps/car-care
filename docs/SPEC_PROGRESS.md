@@ -2,7 +2,7 @@
 
 > **他 Agent 向け:** 本ファイルが仕様書（Discord通知機能追加版）に対する実装状況の正本です。  
 > 機能追加・デプロイ完了時は **必ず本ファイルを更新** してください。  
-> **最終更新:** 2026-08-19
+> **最終更新:** 2026-09-21
 
 ## ステータス凡例
 
@@ -15,21 +15,23 @@
 
 ## 全体進捗
 
-**約 65%** — 認証・DB スキーマ・車両管理・給油記録・メンテ UI は完了。本番デプロイは未了。
+**仕様書の要件は実装済みで、本番（VPS）で稼働中** — 認証・DB スキーマ・車両管理・給油記録・メンテ UI・PWA・家計簿連携は完了し、`main` マージ時の GitHub Actions デプロイ（2026-06-21 の v1.0.0 以降）で継続的にリリースしている。
 
 ```
-[██████████████████████████░░░░] 65%
+[██████████████████████████████] 100%
 ```
+
+最新のリリースバージョンは `package.json` と [GitHub Releases](https://github.com/guchi-apps/car-care/releases) が正。本ファイルには書かない（書くとリリースのたびにずれる）。残っているのは、仕様書の機能ではなく整理・改善の類（下の「次の推奨タスク」と GitHub Issues）。
 
 | レイヤー | 状態 |
 |----------|------|
 | 認証（Supabase Auth）・Signaly・proxy | ✅ |
 | DB スキーマ（Prisma） | ✅ |
 | ローカル開発環境（`.env.local`、1Password 不要） | ✅ |
-| PWA 雛形 | ⚠️ |
+| PWA | ✅ |
 | 給油 UI | ✅ |
 | メンテ・車両 UI | ✅ |
-| 本番 VPS / CI/CD 運用 | ⚠️ |
+| 本番 VPS / CI/CD 運用 | ✅ 稼働中（`main` マージで自動デプロイ） |
 
 ---
 
@@ -45,11 +47,11 @@
 | 許可 Google アカウント判定 | ✅ | `src/lib/allowed-users.ts`（`ALLOWED_GOOGLE_EMAILS`）（#27） |
 | WebAuthn / Passkey | 🚫 | Supabase Auth 移行に伴い廃止（#27）。`authenticators` テーブルは切り戻し用に残置 |
 | Signaly Webhook（ログイン通知） | ✅ | `src/lib/signaly.ts`, `src/app/auth/callback/route.ts` |
-| PWA | ⚠️ | `public/manifest.json`, `public/sw.js`, `public/icons/`, `app-bottom-nav.tsx`, `app-page.tsx` |
+| PWA | ✅ | `public/manifest.json`, `public/sw.js`, `public/icons/`, `app-bottom-nav.tsx`, `app-page.tsx` |
 | アプリアイコン | ✅ | `scripts/icon.template.svg` が原本。`npm run generate:icons` で `public/icons/*` と `src/app/favicon.ico` を書き出す（#132） |
 | 起動中のローディング画面（PWA） | ✅ | `src/components/app-splash.tsx`, `src/app/globals.css`（`display-mode: standalone` のときだけ表示）（#132） |
 | pm2 | ✅ | `ecosystem.config.js`（本番 PORT 3104 既定） |
-| GitHub Actions → VPS SSH デプロイ | ⚠️ | `.github/workflows/deploy.yml`（**1Password・VPS 初回設定後に検証**） |
+| GitHub Actions → VPS SSH デプロイ | ✅ | `.github/workflows/deploy.yml`。`main` への push で本番へ反映済み（稼働中）。失敗時の再試行は `deploy-retry.yml` |
 
 ### 2.2 データモデル
 
@@ -128,10 +130,10 @@
 
 | 要件 | 状態 | 備考 |
 |------|------|------|
-| Git ユーザー名 `Cursor AI` | ⚠️ | 機能コミットは `Cursor AI`。Initial commit は別作者 |
-| `develop` で開発 → `main` で安定版 | ✅ | `develop` push 済み (`origin/develop`) |
-| `main` マージ時 GitHub Actions デプロイ | ⚠️ | workflow 実装済み。1Password / VPS 設定後に `main` push で検証 |
-| `main` マージ時 Git tag / GitHub Release | ⚠️ | `package.json` version から `v*` タグ自動作成 + Release（Portfolio 同様） |
+| コミットの author | ✅ | 現在は `Claude Code`。`Cursor AI` は初期の機能コミット、Initial commit は別作者 |
+| `develop` で開発 → `main` で安定版 | ✅ | 機能は Issue ごとの `issue-<番号>` ブランチ → `develop`。`develop` → `main` はバージョン bump PR（`release/vX.Y.Z`）を経て `release-main/vX.Y.Z` の PR で行う（`release-develop-to-main.yml`。`main` へのマージは人間が手動で行う） |
+| `main` マージ時 GitHub Actions デプロイ | ✅ | `deploy.yml`。稼働中 |
+| `main` マージ時 Git tag / GitHub Release | ✅ | `package.json` version から `v*` タグを自動作成し、デプロイ成功後に Release を作る。バージョンを据え置いたままの `main` 向け PR は `version-tag-check.yml` が落とす |
 | CI Signaly 通知 | ✅ | `.github/workflows/ci.yml`（失敗時 + `main` 向け PR のみ、Discord から Signaly へ移行済み） |
 
 デプロイ手順（workflow）: tag → build → deploy →（成功時のみ）release。build で `npm run build:ci` → tar 転送 → VPS で `.env` 同期 → `prisma migrate deploy` → `pm2 reload`
@@ -144,7 +146,7 @@
 | ローカル開発は 1Password 不要 | ✅ | `.env.local`（DB・Supabase・通知）、`scripts/with-local-env.sh`（#21 で移行） |
 | 開発 DB | ✅ | `127.0.0.1:3306` 固定。`npm run db:setup`（`.env.local` の DB_USER/PASSWORD/NAME で作成） |
 | 開発環境から本番 DB 確認（1Password 使用） | ✅ | `DB_TARGET=production`, `.env.op`, `scripts/with-op-prod-db.sh`, `scripts/prod-db-tunnel.sh` |
-| 本番 Secrets → GitHub Actions / pm2 | ⚠️ | `.github/deploy.env.tpl` 定義済み。1Password 登録・`OP_SERVICE_ACCOUNT_TOKEN` 要設定 |
+| 本番 Secrets → GitHub Actions / pm2 | ✅ | 実行時の取得先は GitHub の secret / variable（対応表は `.github/secrets-manifest.tsv`）。1Password は人が管理する正で、値が変わったときだけ `scripts/sync-github-secrets.sh` で同期する（car-care#60。デプロイのたびに 1Password を読むと日次レート制限を使い切るため） |
 
 ### 環境変数（`.env.local` / ローカル開発、1Password 不要）
 
@@ -158,7 +160,7 @@
 | `ASSET_MANAGER_URL` | 送信先 | 任意。未設定なら `http://127.0.0.1:3102`。ローカルで確認するときは指定する（#141） |
 | `ZAIM_ALLOWED_EMAILS` | 家計簿連携を使ってよい Google アカウント | カンマ区切り。**未設定なら誰も使えない**（#26） |
 
-### 環境変数（1Password `apps/Car` / 本番）
+### 環境変数（本番。値の正は 1Password `apps/Car`、実行時は GitHub の secret / variable から渡る）
 
 | 変数 | 用途 |
 |------|------|
@@ -167,11 +169,11 @@
 | `ALLOWED_GOOGLE_EMAILS` (`allowed-google-emails`) | ログインを許可する Google アカウント（#27） |
 | `AUTH_URL` | 公開 URL（アプリからは参照しない。Supabase の Redirect URLs 登録・Apache VirtualHost 生成で使う） |
 | `SIGNALY_LOGIN_WEBHOOK_URL` | 通知（新規登録・ログイン共通）。全アプリ共通のため organization secret から渡る（値の正は `op://apps/Notify/login-webhook-url`） |
+| `MIGRATE_DB_USER`, `MIGRATE_DB_PASSWORD` | マイグレーション専用 DB ユーザー（`ALTER` 権限あり。organization の共通値。未設定なら通常ユーザーへフォールバック） |
 | `TARGET_DIR` (`target-dir`) | VPS デプロイ先パス |
 | `PORT` (`port`) | 待受ポート |
 | `ASSET_MANAGER_IMPORT_SECRET` (`op://apps/aide/asset-manager-zaim-sync-secret`) | Asset Manager の取り込み口の認証。AIDE・Asset Manager と同じ値（#141） |
 | `ZAIM_ALLOWED_EMAILS` (`zaim-allowed-emails`) | 家計簿連携を使ってよい Google アカウント（#26） |
-| `OP_SERVICE_ACCOUNT_TOKEN` | GitHub Actions → 1Password |
 
 ---
 
@@ -200,7 +202,7 @@ DB:       prisma/schema.prisma, src/lib/prisma.ts, src/lib/database-url.ts
 ローカル環境: .env.local.example, scripts/with-local-env.sh, scripts/setup-db.sh（1Password 不要）
 1Password（本番 DB 確認用）: .env.op.example, scripts/with-op-env.sh, scripts/with-op-prod-db.sh, scripts/prod-db-tunnel.sh
 PWA:      public/manifest.json, public/sw.js, src/components/app-bottom-nav.tsx, src/components/app-page.tsx
-DevOps:   ecosystem.config.js, .github/workflows/ci.yml, .github/workflows/deploy.yml, .github/workflows/release.yml, .github/deploy.env.tpl, .github/ci.env.tpl, scripts/construct-database-url.sh, scripts/vps-bootstrap.sh
+DevOps:   ecosystem.config.js, .github/workflows/ci.yml, .github/workflows/deploy.yml, .github/workflows/release.yml, .github/workflows/release-develop-to-main.yml, .github/workflows/version-tag-check.yml, .github/secrets-manifest.tsv, scripts/sync-github-secrets.sh, scripts/construct-database-url.sh, scripts/vps-bootstrap.sh, scripts/reconcile-migrations-deploy.mjs
 進捗正本: docs/SPEC_PROGRESS.md  ← このファイル
 ```
 
@@ -223,7 +225,9 @@ DevOps:   ecosystem.config.js, .github/workflows/ci.yml, .github/workflows/deplo
 
 ## 次の推奨タスク（優先順）
 
-1. **本番デプロイ初回設定**（1Password `apps/Car` 登録、VPS `scripts/vps-bootstrap.sh`、`main` マージ）
+仕様書の機能に未実装のものは無い。個々の不具合・改善は GitHub Issues で管理しており、ここには仕様側の残作業だけを置く。
+
+1. **旧 NextAuth・Passkey の残骸の DROP** — `accounts` / `sessions` / `verification_tokens` / `authenticators` と `users.email_verified`。切り戻し余地を残して残置中（#27）。着手するときに Issue を起票する
 
 ---
 
@@ -231,6 +235,7 @@ DevOps:   ecosystem.config.js, .github/workflows/ci.yml, .github/workflows/deplo
 
 | 日付 | 内容 |
 |------|------|
+| 2026-09-21 | 本ファイルを実態へ合わせた。全体進捗を「約 65%・本番デプロイ未了」から「要件は実装済み・本番稼働中」へ、「本番 VPS / CI/CD 運用」「GitHub Actions デプロイ」「Git tag / Release」を ✅ に、「次の推奨タスク」から済んだ「本番デプロイ初回設定」を外した。Secrets の取得先（GitHub secret / variable。`.github/deploy.env.tpl` は廃止済み）と `main` へのリリース経路（`release-develop-to-main.yml`）の記述も現状に修正（#183） |
 | 2026-09-21 | ログアウトと許可外アカウントの拒否で、Supabase の `signOut()` を `local` scope に固定。既定の `global` だと共有 Supabase を使う他アプリ・他端末のセッションまで失効していた。`signOutThisApp()` に一本化し、直接呼び出しを検出する `npm test`（`node:test` + `tsx`）を追加（#169） |
 | 2026-09-06 | 給油記録の家計簿登録を、Zaim API での直接登録から Asset Manager 経由へ切り替えた。Zaim API で作った明細は Zaim アプリの「置き換え」候補に並ばず、カード明細で置き換えられないため（asset-manager#300）。car-care は `POST /api/receipts/import` へ送るだけにし、Zaim への登録は Asset Manager（AIDE 経由の Zaim Web 版）が行う。Zaim の OAuth 連携・カテゴリ選択と `ZAIM_CONSUMER_*` / `ZAIM_TOKEN_ENCRYPTION_KEY` を廃止し、`fuel_logs.asset_manager_receipt_id` を追加（#141） |
 | 2026-08-25 | ログイン通知の送信先を全アプリ共通の1チャンネルへ変更。Webhook URL を organization secret `SIGNALY_LOGIN_WEBHOOK_URL` から受け取る形にし（環境変数を `SIGNALY_WEBHOOK_LOGIN_URL` から改名）、通知のペイロードへ送信元を表す `source: "car-care"` を追加（#119） |
