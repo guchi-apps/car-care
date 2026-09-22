@@ -235,6 +235,7 @@ DevOps:   ecosystem.config.js, .github/workflows/ci.yml, .github/workflows/deplo
 
 | 日付 | 内容 |
 |------|------|
+| 2026-09-22 | 給油記録の登録・更新（`createFuelLogAction`/`updateFuelLogAction`）で、記録自体は保存済みなのに登録店舗の更新（`upsertRegisteredGasStationFromFuelLog`）が unique 制約に衝突して例外を投げ、「登録に失敗しました」と表示されて利用者が二重入力してしまう不具合を修正。同関数を osmId・registeredName の両方の候補で既存行を先に引き当てる方式（#179 と同じ考え方）に直し、あわせて登録店舗更新の失敗を家計簿送信と同じ「おまけ」扱いにして給油記録の保存自体は失敗にしないようにした（#177、起点は #167） |
 | 2026-09-22 | `notifySignalyLogin()` が読む環境変数名だけ `SIGNALY_WEBHOOK_LOGIN_URL`（旧名）のままで、#119 の改名（`SIGNALY_LOGIN_WEBHOOK_URL` へ）に追従しておらず、本番でログイン通知が一度も送られていなかった不具合を修正。`src/lib/signaly.ts` の参照先を新名へ合わせた（#176、起点は #167） |
 | 2026-09-22 | 給油記録から登録店舗を作る同期処理（`syncRegisteredGasStationsFromFuelLogs`）が、同じ登録名で osmId が異なる給油記録が入ると unique 制約に衝突して例外を投げ、`/fuel`・`/fuel/new`・`/settings` の3画面が毎回落ちる不具合を修正。osmId・registeredName の両方の候補で既存行を先に引き当ててから create/update を判断するよう変更（#179、起点は #167） |
 | 2026-09-22 | 「近くの登録店舗」API（`/api/registered-gas-stations/nearby`）の外部問い合わせを改善。座標が引けなかった osmId に `geocode_failed_at` を記録し、24時間は再問い合わせしないようにした。Overpass で座標が取れなかった osmId の Nominatim への問い合わせは直列実行から同時実行数2の並列実行へ変更。座標書き戻しの失敗を握りつぶしていた箇所へ `console.error` を追加（#182） |
