@@ -171,17 +171,18 @@ model GasStationBrand {
 }
 
 model RegisteredGasStation {
-  id               String   @id @default(cuid())
-  userId           String   @map("user_id")
-  osmId            String?  @map("osm_id")
-  latitude         Float?   @map("latitude")
-  longitude        Float?   @map("longitude")
-  registeredName   String   @map("registered_name")
+  id               String    @id @default(cuid())
+  userId           String    @map("user_id")
+  osmId            String?   @map("osm_id")
+  latitude         Float?    @map("latitude")
+  longitude        Float?    @map("longitude")
+  geocodeFailedAt  DateTime? @map("geocode_failed_at")
+  registeredName   String    @map("registered_name")
   brand            String?
-  hiddenFromPicker Boolean  @default(false) @map("hidden_from_picker")
-  displayOrder     Int      @default(0) @map("display_order")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  hiddenFromPicker Boolean   @default(false) @map("hidden_from_picker")
+  displayOrder     Int       @default(0) @map("display_order")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -209,26 +210,26 @@ model MaintenanceLog {
 }
 
 model FuelLog {
-  id               String   @id @default(cuid())
-  vehicleId        String   @map("vehicle_id")
-  date             DateTime
-  distanceKm       Decimal  @map("distance_km") @db.Decimal(10, 2)
-  odometer         Int?     @map("odometer")
-  fuelAmount       Decimal  @map("fuel_amount") @db.Decimal(10, 2)
-  pricePerLiter    Int      @map("price_per_liter")
-  totalCost        Int      @map("total_cost")
-  isFull           Boolean  @default(false) @map("is_full")
-  gasStationName   String?  @map("gas_station_name")
-  gasStationBrands String?  @map("gas_station_brands")
-  gasStationOsmId  String?  @map("gas_station_osm_id")
+  id                    String    @id @default(cuid())
+  vehicleId             String    @map("vehicle_id")
+  date                  DateTime
+  distanceKm            Decimal   @map("distance_km") @db.Decimal(10, 2)
+  odometer              Int?      @map("odometer")
+  fuelAmount            Decimal   @map("fuel_amount") @db.Decimal(10, 2)
+  pricePerLiter         Int       @map("price_per_liter")
+  totalCost             Int       @map("total_cost")
+  isFull                Boolean   @default(false) @map("is_full")
+  gasStationName        String?   @map("gas_station_name")
+  gasStationBrands      String?   @map("gas_station_brands")
+  gasStationOsmId       String?   @map("gas_station_osm_id")
   /// Asset Manager 側の取り込み ID（#141）。家計簿へ送ったかどうかはこれで判定する。
-  assetManagerReceiptId String? @map("asset_manager_receipt_id")
+  assetManagerReceiptId String?   @map("asset_manager_receipt_id")
   /// OAuth 時代（#26）に Zaim へ直接登録した明細の ID。新しい記録には入らない。
-  zaimMoneyId      String?  @map("zaim_money_id")
+  zaimMoneyId           String?   @map("zaim_money_id")
   /// 家計簿へ送った日時（#141 より前は Zaim へ登録した日時）。
-  kakeiboSentAt    DateTime? @map("kakeibo_sent_at")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  kakeiboSentAt         DateTime? @map("kakeibo_sent_at")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
 
   vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
 
@@ -244,11 +245,11 @@ model KakeiboSetting {
   userId String @unique @map("user_id")
 
   /// 給油を記録したら自動で家計簿へ送るか。
-  autoSend Boolean @default(true) @map("auto_send")
+  autoSend        Boolean   @default(true) @map("auto_send")
   /// 支払元の Zaim 口座名。Asset Manager へ accountHint として渡す。
-  cardAccountName String? @map("account_name")
+  cardAccountName String?   @map("account_name")
   /// 最後に家計簿へ送った日時。
-  lastSentAt DateTime? @map("last_sent_at")
+  lastSentAt      DateTime? @map("last_sent_at")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

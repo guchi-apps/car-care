@@ -40,6 +40,32 @@ const OVERPASS_ENDPOINTS = [
 
 const OVERPASS_USER_AGENT = "CarCareApp/1.0 (car-care)";
 
+// Nominatim の利用ポリシー（過度な同時実行を避ける）に配慮しつつ、
+// 直列実行による待ち時間（1件あたり最悪24秒）を減らすため、少数だけ並列化する。
+const NOMINATIM_LOOKUP_CONCURRENCY = 2;
+
+async function mapWithConcurrencyLimit<T, R>(
+  items: readonly T[],
+  limit: number,
+  mapper: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < items.length) {
+      const currentIndex = nextIndex++;
+      results[currentIndex] = await mapper(items[currentIndex]);
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, () => worker()),
+  );
+
+  return results;
+}
+
 function haversineDistanceMeters(
   lat1: number,
   lon1: number,
@@ -731,17 +757,22 @@ export async function lookupGasStationsByOsmIds(
     }
   }
 
-  for (const osmId of uniqueOsmIds) {
-    if (hasCoordinateForOsmId(coordinates, osmId)) {
-      continue;
-    }
+  const missingOsmIds = uniqueOsmIds.filter(
+    (osmId) => !hasCoordinateForOsmId(coordinates, osmId),
+  );
+  const nominatimStations = await mapWithConcurrencyLimit(
+    missingOsmIds,
+    NOMINATIM_LOOKUP_CONCURRENCY,
+    (osmId) => lookupGasStationFromNominatim(osmId),
+  );
 
-    const station = await lookupGasStationFromNominatim(osmId);
+  missingOsmIds.forEach((osmId, index) => {
+    const station = nominatimStations[index];
 
     if (station) {
       coordinates.set(osmId, { lat: station.lat, lon: station.lon });
     }
-  }
+  });
 
   return coordinates;
 }

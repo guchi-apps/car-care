@@ -9,6 +9,7 @@ export type RegisteredGasStationRecord = {
   osmId: string | null;
   latitude: number | null;
   longitude: number | null;
+  geocodeFailedAt: Date | null;
   registeredName: string;
   brand: string | null;
   hiddenFromPicker: boolean;
