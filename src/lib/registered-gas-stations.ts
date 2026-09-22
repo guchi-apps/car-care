@@ -106,6 +106,22 @@ async function getNextDisplayOrder(userId: string): Promise<number> {
   return (last?.displayOrder ?? -1) + 1;
 }
 
+// registered_gas_stations は @@unique([userId, osmId]) と @@unique([userId, registeredName])
+// の2本を持つため、片方のキーだけでupsertすると「同じ登録名でosmIdが異なる」記録でP2002になる
+// (#179)。両方の候補で既存行を引き当ててから create/update を判断する。
+async function findExistingRegisteredGasStation(
+  userId: string,
+  osmId: string | null,
+  registeredName: string,
+) {
+  return prisma.registeredGasStation.findFirst({
+    where: {
+      userId,
+      OR: [...(osmId ? [{ osmId }] : []), { registeredName }],
+    },
+  });
+}
+
 export async function syncRegisteredGasStationsFromFuelLogs(userId: string) {
   const logs = await prisma.fuelLog.findMany({
     where: {
@@ -137,21 +153,31 @@ export async function syncRegisteredGasStationsFromFuelLogs(userId: string) {
 
       seenOsmIds.add(log.gasStationOsmId);
 
-      await prisma.registeredGasStation.upsert({
-        where: {
-          userId_osmId: {
-            userId,
-            osmId: log.gasStationOsmId,
-          },
-        },
-        create: {
+      const existing = await findExistingRegisteredGasStation(
+        userId,
+        log.gasStationOsmId,
+        registeredName,
+      );
+
+      if (existing) {
+        if (existing.osmId == null) {
+          await prisma.registeredGasStation.update({
+            where: { id: existing.id },
+            data: { osmId: log.gasStationOsmId },
+          });
+        }
+
+        continue;
+      }
+
+      await prisma.registeredGasStation.create({
+        data: {
           userId,
           osmId: log.gasStationOsmId,
           registeredName,
           brand: log.gasStationBrands,
           displayOrder: await getNextDisplayOrder(userId),
         },
-        update: {},
       });
 
       continue;
@@ -163,20 +189,23 @@ export async function syncRegisteredGasStationsFromFuelLogs(userId: string) {
 
     seenManualNames.add(registeredName);
 
-    await prisma.registeredGasStation.upsert({
-      where: {
-        userId_registeredName: {
-          userId,
-          registeredName,
-        },
-      },
-      create: {
+    const existing = await findExistingRegisteredGasStation(
+      userId,
+      null,
+      registeredName,
+    );
+
+    if (existing) {
+      continue;
+    }
+
+    await prisma.registeredGasStation.create({
+      data: {
         userId,
         registeredName,
         brand: log.gasStationBrands,
         displayOrder: await getNextDisplayOrder(userId),
       },
-      update: {},
     });
   }
 }
