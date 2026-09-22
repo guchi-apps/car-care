@@ -4,6 +4,10 @@ import { lookupGasStationsByOsmIds } from "@/lib/gas-stations-search";
 import { prisma } from "@/lib/prisma";
 import { listRegisteredGasStationsForUser } from "@/lib/registered-gas-stations";
 
+// 座標が引けなかった osmId は、この期間が経つまで再問い合わせしない
+// （地図に載っていない店舗が登録されているだけで毎回外部へ問い合わせに行くのを防ぐ）。
+const GEOCODE_RETRY_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
 function haversineDistanceMeters(
   lat1: number,
   lon1: number,
@@ -41,14 +45,36 @@ export async function GET(request: Request) {
   const stations = (await listRegisteredGasStationsForUser(user.id)).filter(
     (station) => !station.hiddenFromPicker,
   );
+  const now = Date.now();
   const osmIds = stations
     .filter(
       (station) =>
         station.osmId &&
-        (station.latitude == null || station.longitude == null),
+        (station.latitude == null || station.longitude == null) &&
+        (station.geocodeFailedAt == null ||
+          now - station.geocodeFailedAt.getTime() >= GEOCODE_RETRY_COOLDOWN_MS),
     )
     .map((station) => station.osmId!);
   const coordinates = await lookupGasStationsByOsmIds(osmIds);
+
+  const unresolvedOsmIds = osmIds.filter(
+    (osmId) =>
+      !coordinates.has(osmId) && !coordinates.has(String(Number(osmId))),
+  );
+
+  if (unresolvedOsmIds.length > 0) {
+    void prisma.registeredGasStation
+      .updateMany({
+        where: { userId: user.id, osmId: { in: unresolvedOsmIds } },
+        data: { geocodeFailedAt: new Date() },
+      })
+      .catch((error) => {
+        console.error(
+          "Failed to record geocode failure for registered gas stations",
+          error,
+        );
+      });
+  }
 
   const withDistance = await Promise.all(
     stations.map(async (station) => {
@@ -90,9 +116,18 @@ export async function GET(request: Request) {
         void prisma.registeredGasStation
           .update({
             where: { id: station.id },
-            data: { latitude: pointLat, longitude: pointLon },
+            data: {
+              latitude: pointLat,
+              longitude: pointLon,
+              geocodeFailedAt: null,
+            },
           })
-          .catch(() => {});
+          .catch((error) => {
+            console.error(
+              `Failed to persist coordinates for registered gas station ${station.id}`,
+              error,
+            );
+          });
       }
 
       const distanceMeters = haversineDistanceMeters(
