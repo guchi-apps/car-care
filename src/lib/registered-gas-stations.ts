@@ -73,7 +73,7 @@ export async function listRegisteredGasStationsForUser(
   userId: string,
 ): Promise<RegisteredGasStationRecord[]> {
   const stations = await prisma.registeredGasStation.findMany({
-    where: { userId },
+    where: { userId, deletedAt: null },
     orderBy: [{ displayOrder: "asc" }, { registeredName: "asc" }],
   });
 
@@ -137,21 +137,30 @@ export async function syncRegisteredGasStationsFromFuelLogs(userId: string) {
 
       seenOsmIds.add(log.gasStationOsmId);
 
-      await prisma.registeredGasStation.upsert({
+      // 削除済み（deletedAt 有り）の行も含めて存在確認する。ここで見つかった
+      // 行には触れない（削除済みなら復活させず、既存なら中身も上書きしない）。
+      // 存在する行を upsert の update 対象にすると、削除済みの行が復活する（#178）。
+      const existing = await prisma.registeredGasStation.findUnique({
         where: {
           userId_osmId: {
             userId,
             osmId: log.gasStationOsmId,
           },
         },
-        create: {
+      });
+
+      if (existing) {
+        continue;
+      }
+
+      await prisma.registeredGasStation.create({
+        data: {
           userId,
           osmId: log.gasStationOsmId,
           registeredName,
           brand: log.gasStationBrands,
           displayOrder: await getNextDisplayOrder(userId),
         },
-        update: {},
       });
 
       continue;
@@ -163,20 +172,26 @@ export async function syncRegisteredGasStationsFromFuelLogs(userId: string) {
 
     seenManualNames.add(registeredName);
 
-    await prisma.registeredGasStation.upsert({
+    const existing = await prisma.registeredGasStation.findUnique({
       where: {
         userId_registeredName: {
           userId,
           registeredName,
         },
       },
-      create: {
+    });
+
+    if (existing) {
+      continue;
+    }
+
+    await prisma.registeredGasStation.create({
+      data: {
         userId,
         registeredName,
         brand: log.gasStationBrands,
         displayOrder: await getNextDisplayOrder(userId),
       },
-      update: {},
     });
   }
 }
@@ -204,23 +219,36 @@ export async function upsertRegisteredGasStationFromFuelLog(
   }
 
   if (input.osmId) {
-    await prisma.registeredGasStation.upsert({
+    const existing = await prisma.registeredGasStation.findUnique({
       where: {
         userId_osmId: {
           userId,
           osmId: input.osmId,
         },
       },
-      create: {
+    });
+
+    if (existing) {
+      // 削除済みなら復活させない（#178）。
+      if (existing.deletedAt) {
+        return;
+      }
+
+      await prisma.registeredGasStation.update({
+        where: { id: existing.id },
+        data: { registeredName, brand },
+      });
+
+      return;
+    }
+
+    await prisma.registeredGasStation.create({
+      data: {
         userId,
         osmId: input.osmId,
         registeredName,
         brand,
         displayOrder: await getNextDisplayOrder(userId),
-      },
-      update: {
-        registeredName,
-        brand,
       },
     });
 
@@ -236,6 +264,11 @@ export async function upsertRegisteredGasStationFromFuelLog(
   });
 
   if (existing) {
+    // 削除済みなら復活させない（#178）。
+    if (existing.deletedAt) {
+      return;
+    }
+
     await prisma.registeredGasStation.update({
       where: { id: existing.id },
       data: { brand },
@@ -267,7 +300,7 @@ export async function updateRegisteredGasStationForUser(
   },
 ) {
   const existing = await prisma.registeredGasStation.findFirst({
-    where: { id: stationId, userId },
+    where: { id: stationId, userId, deletedAt: null },
   });
 
   if (!existing) {
@@ -414,7 +447,7 @@ export async function setRegisteredGasStationHiddenForUser(
   hiddenFromPicker: boolean,
 ) {
   const existing = await prisma.registeredGasStation.findFirst({
-    where: { id: stationId, userId },
+    where: { id: stationId, userId, deletedAt: null },
   });
 
   if (!existing) {
@@ -462,15 +495,19 @@ export async function deleteRegisteredGasStationForUser(
   stationId: string,
 ) {
   const existing = await prisma.registeredGasStation.findFirst({
-    where: { id: stationId, userId },
+    where: { id: stationId, userId, deletedAt: null },
   });
 
   if (!existing) {
     return { error: "登録店舗が見つかりません" } as const;
   }
 
-  await prisma.registeredGasStation.delete({
+  // 物理削除すると syncRegisteredGasStationsFromFuelLogs が既存の給油記録から
+  // 同じ店舗を作り直してしまう（#178）。deletedAt を立てる論理削除にして、
+  // 一覧・sync の両方からこの行を除外する。
+  await prisma.registeredGasStation.update({
     where: { id: stationId },
+    data: { deletedAt: new Date() },
   });
 
   return { ok: true } as const;
