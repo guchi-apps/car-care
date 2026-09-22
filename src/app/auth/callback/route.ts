@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { after, NextResponse, type NextRequest } from "next/server";
 
 import { isAllowedEmail } from "@/lib/allowed-users";
 import { prisma } from "@/lib/prisma";
@@ -46,7 +46,10 @@ export async function GET(request: NextRequest) {
 
   await linkSupabaseUser({ supabaseUserId: user.id, email: email!, name, image });
 
-  await notifySignalyLogin({ email, name, provider: user.app_metadata?.provider ?? null });
+  // ログイン通知はログインの成否とは関係ない「おまけ」（kakeiboの送信と同じ扱い）。
+  // リダイレクトを待たせないよう、応答を返したあとに送る。
+  const provider = user.app_metadata?.provider ?? null;
+  after(() => notifySignalyLogin({ email, name, provider }));
 
   return NextResponse.redirect(`${origin}${next}`);
 }

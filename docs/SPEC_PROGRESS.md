@@ -235,6 +235,7 @@ DevOps:   ecosystem.config.js, .github/workflows/ci.yml, .github/workflows/deplo
 
 | 日付 | 内容 |
 |------|------|
+| 2026-09-22 | ログイン処理（`/auth/callback`）が Signaly へのログイン通知 Webhook をタイムアウト無しで待ち、Signaly 側が応答しない場合にリダイレクトが止まる不具合を修正。`notifySignalyLogin` の `fetch` に `AbortSignal.timeout(5_000)` を追加し、送信自体も `after()` に載せて応答後へ送るよう変更（kakeibo 送信と同じ「おまけ」扱い）（#181、起点は #167） |
 | 2026-09-21 | 本ファイルを実態へ合わせた。全体進捗を「約 65%・本番デプロイ未了」から「要件は実装済み・本番稼働中」へ、「本番 VPS / CI/CD 運用」「GitHub Actions デプロイ」「Git tag / Release」を ✅ に、「次の推奨タスク」から済んだ「本番デプロイ初回設定」を外した。Secrets の取得先（GitHub secret / variable。`.github/deploy.env.tpl` は廃止済み）と `main` へのリリース経路（`release-develop-to-main.yml`）の記述も現状に修正（#183） |
 | 2026-09-21 | ログアウトと許可外アカウントの拒否で、Supabase の `signOut()` を `local` scope に固定。既定の `global` だと共有 Supabase を使う他アプリ・他端末のセッションまで失効していた。`signOutThisApp()` に一本化し、直接呼び出しを検出する `npm test`（`node:test` + `tsx`）を追加（#169） |
 | 2026-09-06 | 給油記録の家計簿登録を、Zaim API での直接登録から Asset Manager 経由へ切り替えた。Zaim API で作った明細は Zaim アプリの「置き換え」候補に並ばず、カード明細で置き換えられないため（asset-manager#300）。car-care は `POST /api/receipts/import` へ送るだけにし、Zaim への登録は Asset Manager（AIDE 経由の Zaim Web 版）が行う。Zaim の OAuth 連携・カテゴリ選択と `ZAIM_CONSUMER_*` / `ZAIM_TOKEN_ENCRYPTION_KEY` を廃止し、`fuel_logs.asset_manager_receipt_id` を追加（#141） |
