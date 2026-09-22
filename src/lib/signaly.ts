@@ -81,6 +81,9 @@ export async function notifySignalyLogin(
         color: COLOR_LOGIN,
         fields,
       }),
+      // ログイン通知はログインの成否とは関係ない「おまけ」。Signaly が応答しなくても
+      // ログインのリダイレクトを止めないよう、短いタイムアウトで切り上げる。
+      signal: AbortSignal.timeout(5_000),
     });
     if (!response.ok) {
       console.error(
