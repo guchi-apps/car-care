@@ -43,9 +43,9 @@ export async function notifySignalyLogin(
     provider?: string | null;
   } = {}
 ): Promise<void> {
-  const webhookUrl = process.env.SIGNALY_WEBHOOK_LOGIN_URL;
+  const webhookUrl = process.env.SIGNALY_LOGIN_WEBHOOK_URL;
   if (!webhookUrl) {
-    console.warn("[signaly] SIGNALY_WEBHOOK_LOGIN_URL が未設定のため、ログイン通知を送りません");
+    console.warn("[signaly] SIGNALY_LOGIN_WEBHOOK_URL が未設定のため、ログイン通知を送りません");
     return;
   }
 
