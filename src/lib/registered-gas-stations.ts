@@ -21,6 +21,7 @@ function toRecord(station: {
   osmId: string | null;
   latitude: number | null;
   longitude: number | null;
+  geocodeFailedAt: Date | null;
   registeredName: string;
   brand: string | null;
   hiddenFromPicker: boolean;
@@ -31,6 +32,7 @@ function toRecord(station: {
     osmId: station.osmId,
     latitude: station.latitude,
     longitude: station.longitude,
+    geocodeFailedAt: station.geocodeFailedAt,
     registeredName: station.registeredName,
     brand: station.brand,
     hiddenFromPicker: station.hiddenFromPicker,

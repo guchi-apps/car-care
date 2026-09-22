@@ -2,7 +2,7 @@
 
 > **他 Agent 向け:** 本ファイルが仕様書（Discord通知機能追加版）に対する実装状況の正本です。  
 > 機能追加・デプロイ完了時は **必ず本ファイルを更新** してください。  
-> **最終更新:** 2026-09-21
+> **最終更新:** 2026-09-22
 
 ## ステータス凡例
 
@@ -235,6 +235,7 @@ DevOps:   ecosystem.config.js, .github/workflows/ci.yml, .github/workflows/deplo
 
 | 日付 | 内容 |
 |------|------|
+| 2026-09-22 | 「近くの登録店舗」API（`/api/registered-gas-stations/nearby`）の外部問い合わせを改善。座標が引けなかった osmId に `geocode_failed_at` を記録し、24時間は再問い合わせしないようにした。Overpass で座標が取れなかった osmId の Nominatim への問い合わせは直列実行から同時実行数2の並列実行へ変更。座標書き戻しの失敗を握りつぶしていた箇所へ `console.error` を追加（#182） |
 | 2026-09-21 | 本ファイルを実態へ合わせた。全体進捗を「約 65%・本番デプロイ未了」から「要件は実装済み・本番稼働中」へ、「本番 VPS / CI/CD 運用」「GitHub Actions デプロイ」「Git tag / Release」を ✅ に、「次の推奨タスク」から済んだ「本番デプロイ初回設定」を外した。Secrets の取得先（GitHub secret / variable。`.github/deploy.env.tpl` は廃止済み）と `main` へのリリース経路（`release-develop-to-main.yml`）の記述も現状に修正（#183） |
 | 2026-09-21 | ログアウトと許可外アカウントの拒否で、Supabase の `signOut()` を `local` scope に固定。既定の `global` だと共有 Supabase を使う他アプリ・他端末のセッションまで失効していた。`signOutThisApp()` に一本化し、直接呼び出しを検出する `npm test`（`node:test` + `tsx`）を追加（#169） |
 | 2026-09-06 | 給油記録の家計簿登録を、Zaim API での直接登録から Asset Manager 経由へ切り替えた。Zaim API で作った明細は Zaim アプリの「置き換え」候補に並ばず、カード明細で置き換えられないため（asset-manager#300）。car-care は `POST /api/receipts/import` へ送るだけにし、Zaim への登録は Asset Manager（AIDE 経由の Zaim Web 版）が行う。Zaim の OAuth 連携・カテゴリ選択と `ZAIM_CONSUMER_*` / `ZAIM_TOKEN_ENCRYPTION_KEY` を廃止し、`fuel_logs.asset_manager_receipt_id` を追加（#141） |
