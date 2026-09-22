@@ -235,6 +235,7 @@ DevOps:   ecosystem.config.js, .github/workflows/ci.yml, .github/workflows/deplo
 
 | 日付 | 内容 |
 |------|------|
+| 2026-09-22 | 給油記録から登録店舗を作る同期処理（`syncRegisteredGasStationsFromFuelLogs`）が、同じ登録名で osmId が異なる給油記録が入ると unique 制約に衝突して例外を投げ、`/fuel`・`/fuel/new`・`/settings` の3画面が毎回落ちる不具合を修正。osmId・registeredName の両方の候補で既存行を先に引き当ててから create/update を判断するよう変更（#179、起点は #167） |
 | 2026-09-22 | 「近くの登録店舗」API（`/api/registered-gas-stations/nearby`）の外部問い合わせを改善。座標が引けなかった osmId に `geocode_failed_at` を記録し、24時間は再問い合わせしないようにした。Overpass で座標が取れなかった osmId の Nominatim への問い合わせは直列実行から同時実行数2の並列実行へ変更。座標書き戻しの失敗を握りつぶしていた箇所へ `console.error` を追加（#182） |
 | 2026-09-22 | ログイン処理（`/auth/callback`）が Signaly へのログイン通知 Webhook をタイムアウト無しで待ち、Signaly 側が応答しない場合にリダイレクトが止まる不具合を修正。`notifySignalyLogin` の `fetch` に `AbortSignal.timeout(5_000)` を追加し、送信自体も `after()` に載せて応答後へ送るよう変更（kakeibo 送信と同じ「おまけ」扱い）（#181、起点は #167） |
 | 2026-09-21 | 本ファイルを実態へ合わせた。全体進捗を「約 65%・本番デプロイ未了」から「要件は実装済み・本番稼働中」へ、「本番 VPS / CI/CD 運用」「GitHub Actions デプロイ」「Git tag / Release」を ✅ に、「次の推奨タスク」から済んだ「本番デプロイ初回設定」を外した。Secrets の取得先（GitHub secret / variable。`.github/deploy.env.tpl` は廃止済み）と `main` へのリリース経路（`release-develop-to-main.yml`）の記述も現状に修正（#183） |
