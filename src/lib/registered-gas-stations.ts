@@ -217,6 +217,9 @@ export async function ensureRegisteredGasStationsForUser(
   return listRegisteredGasStationsForUser(userId);
 }
 
+// 片方のキー（userId_osmId）だけでupsertすると、同じregisteredNameの行が既にある場合に
+// userId_registeredNameへ衝突してP2002になる(#177)。findExistingRegisteredGasStation（#179）と
+// 同じくosmIdとregisteredNameの両方で既存行を引き当ててからcreate/updateを判断する。
 export async function upsertRegisteredGasStationFromFuelLog(
   userId: string,
   input: {
@@ -227,47 +230,28 @@ export async function upsertRegisteredGasStationFromFuelLog(
 ) {
   const registeredName = input.registeredName.trim();
   const brand = input.brand.trim();
+  const osmId = input.osmId ?? null;
 
   if (!registeredName || !brand) {
     return;
   }
 
-  if (input.osmId) {
-    await prisma.registeredGasStation.upsert({
-      where: {
-        userId_osmId: {
-          userId,
-          osmId: input.osmId,
-        },
-      },
-      create: {
-        userId,
-        osmId: input.osmId,
-        registeredName,
-        brand,
-        displayOrder: await getNextDisplayOrder(userId),
-      },
-      update: {
-        registeredName,
-        brand,
-      },
-    });
-
-    return;
-  }
-
-  const existing = await prisma.registeredGasStation.findFirst({
-    where: {
-      userId,
-      osmId: null,
-      registeredName,
-    },
-  });
+  const existing = await findExistingRegisteredGasStation(
+    userId,
+    osmId,
+    registeredName,
+  );
 
   if (existing) {
     await prisma.registeredGasStation.update({
       where: { id: existing.id },
-      data: { brand },
+      data: {
+        registeredName,
+        brand,
+        // 既存行にosmIdが無く、今回osmId付きで記録されたときだけ埋める。
+        // 既存のosmIdを別の値で上書きすることはしない。
+        ...(osmId && !existing.osmId ? { osmId } : {}),
+      },
     });
     return;
   }
@@ -275,6 +259,7 @@ export async function upsertRegisteredGasStationFromFuelLog(
   await prisma.registeredGasStation.create({
     data: {
       userId,
+      osmId,
       registeredName,
       brand,
       displayOrder: await getNextDisplayOrder(userId),
