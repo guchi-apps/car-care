@@ -50,20 +50,22 @@ function formatMaintenanceCategoryActionError(error: unknown, fallback: string):
   return fallback;
 }
 
-function parseKeywords(value: FormDataEntryValue | null): string | null {
+function parseKeywords(value: FormDataEntryValue | null) {
   const text = String(value ?? "")
     .trim()
     .replace(/、/g, ",");
 
   if (!text) {
-    return null;
+    return { value: null } as const;
   }
 
   if (text.length > MAX_GAS_STATION_BRAND_KEYWORDS_LENGTH) {
-    return null;
+    return {
+      error: `キーワードは${MAX_GAS_STATION_BRAND_KEYWORDS_LENGTH}文字以内で入力してください`,
+    } as const;
   }
 
-  return text;
+  return { value: text } as const;
 }
 
 export async function reorderGasStationBrandsAction(
@@ -93,10 +95,16 @@ export async function createGasStationBrandAction(
 ): Promise<SettingsActionState> {
   try {
     const userId = await requireUserId();
+    const keywords = parseKeywords(formData.get("matchKeywords"));
+
+    if ("error" in keywords) {
+      return { ok: false, error: keywords.error };
+    }
+
     const result = await createGasStationBrandForUser(
       userId,
       String(formData.get("name") ?? ""),
-      parseKeywords(formData.get("matchKeywords")),
+      keywords.value,
     );
 
     if ("error" in result) {
@@ -120,9 +128,15 @@ export async function updateGasStationBrandAction(
 ): Promise<SettingsActionState> {
   try {
     const userId = await requireUserId();
+    const keywords = parseKeywords(formData.get("matchKeywords"));
+
+    if ("error" in keywords) {
+      return { ok: false, error: keywords.error };
+    }
+
     const result = await updateGasStationBrandForUser(userId, brandId, {
       name: String(formData.get("name") ?? ""),
-      matchKeywords: parseKeywords(formData.get("matchKeywords")),
+      matchKeywords: keywords.value,
     });
 
     if ("error" in result) {
