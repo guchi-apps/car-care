@@ -396,11 +396,18 @@ export async function createFuelLogAction(
       return { ok: false, error: "給油記録の登録に失敗しました" };
     }
 
-    await upsertRegisteredGasStationFromFuelLog(userId, {
-      registeredName: parsed.data.gasStationName,
-      brand: parsed.data.gasStationBrands,
-      osmId: parsed.data.gasStationOsmId,
-    });
+    // 登録店舗の更新も「おまけ」で、失敗しても給油記録の登録は成功とする
+    // （ここで例外を投げさせると、記録は保存済みなのに「登録に失敗しました」と表示され、
+    // 利用者が二重入力してしまう。#177）。
+    try {
+      await upsertRegisteredGasStationFromFuelLog(userId, {
+        registeredName: parsed.data.gasStationName,
+        brand: parsed.data.gasStationBrands,
+        osmId: parsed.data.gasStationOsmId,
+      });
+    } catch (error) {
+      console.error("[fuel] 登録店舗の更新に失敗:", error);
+    }
 
     // 家計簿への送信は「おまけ」で、失敗しても給油記録の登録は成功とする
     // （家計簿の都合で車の記録を落とさない）。
@@ -462,11 +469,16 @@ export async function updateFuelLogAction(
       return { ok: false, error: "給油記録が見つかりません" };
     }
 
-    await upsertRegisteredGasStationFromFuelLog(userId, {
-      registeredName: parsed.data.gasStationName,
-      brand: parsed.data.gasStationBrands,
-      osmId: parsed.data.gasStationOsmId,
-    });
+    // 登録店舗の更新も「おまけ」で、失敗しても給油記録の更新は成功とする（#177）。
+    try {
+      await upsertRegisteredGasStationFromFuelLog(userId, {
+        registeredName: parsed.data.gasStationName,
+        brand: parsed.data.gasStationBrands,
+        osmId: parsed.data.gasStationOsmId,
+      });
+    } catch (error) {
+      console.error("[fuel] 登録店舗の更新に失敗:", error);
+    }
 
     revalidatePath("/fuel");
     revalidatePath("/fuel/new");
