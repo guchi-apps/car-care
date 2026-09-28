@@ -30,7 +30,7 @@ export default async function SettingsPage() {
     : {};
 
   // 家計簿連携は送信先が設定されていて、かつ ZAIM_ALLOWED_EMAILS に載っているアカウントにだけ出す。
-  const kakeiboAvailable = isKakeiboAvailableFor(user?.email);
+  const kakeiboAvailable = await isKakeiboAvailableFor(user?.email);
   const kakeiboSetting =
     userId && kakeiboAvailable ? await getKakeiboSettingView(userId) : null;
 

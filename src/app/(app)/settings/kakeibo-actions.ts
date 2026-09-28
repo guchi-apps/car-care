@@ -22,7 +22,7 @@ async function requireKakeiboUser() {
     return { error: "認証が必要です" } as const;
   }
 
-  if (!isKakeiboAvailableFor(user.email)) {
+  if (!(await isKakeiboAvailableFor(user.email))) {
     return { error: "このアカウントでは家計簿連携を利用できません" } as const;
   }
 

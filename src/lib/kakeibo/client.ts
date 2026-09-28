@@ -110,7 +110,7 @@ function describeFailure(reason: KakeiboImportFailureReason): string {
 export async function sendPaymentImport(
   payload: KakeiboImportPayload,
 ): Promise<KakeiboImportResponse> {
-  const endpoint = getAssetManagerEndpoint();
+  const endpoint = await getAssetManagerEndpoint();
 
   if (!endpoint) {
     throw new KakeiboImportError(

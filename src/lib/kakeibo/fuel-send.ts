@@ -117,7 +117,7 @@ export async function sendFuelLogToKakeibo(
   fuelLogId: string,
   options: KakeiboSendOptions = {},
 ): Promise<KakeiboSendResult> {
-  if (!isKakeiboAvailableFor(userEmail)) {
+  if (!(await isKakeiboAvailableFor(userEmail))) {
     return { status: "unavailable" };
   }
 
