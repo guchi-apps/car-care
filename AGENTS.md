@@ -183,6 +183,10 @@ AIDE 経由で Zaim の Web 版（my.zaim.net）の入力画面から行う。
   登録した記録は `zaim_money_id`）。送り直しても Asset Manager 側が `externalId` で弾く
 - **給油量は品名ではなく `usage` で渡す。** 品名に混ぜると Asset Manager の分類履歴のキーが
   毎回変わり、一度決めた内訳が二度と当たらなくなる
+- **Asset Manager の認証値は issue-deck の共有トークン `ASSET_MANAGER_ZAIM_SYNC_SECRET` から実行時に取る**
+  （`src/lib/shared-token.ts`。10 分キャッシュ・失敗時は直前の値・無ければ `ASSET_MANAGER_IMPORT_SECRET`）。
+  フォールバックしても画面は正常に見えるため、**secret / variable の未登録は issue-deck の設定画面で
+  利用元に `car-care` が出ているかで確認する**（#212）。値と Bearer はログに出さない
 - **`ASSET_MANAGER_IMPORT_SECRET` が無い環境では連携 UI を出さない。** 未設定でも画面が壊れない
   ようにするため。判定は `isKakeiboAvailableFor(email)` の 1 か所に寄せてある
 - **テーブルは `kakeibo_settings`、モデル名は `KakeiboSetting`。** OAuth 時代（#26）の列は #146 で

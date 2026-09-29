@@ -52,7 +52,7 @@ export default async function FuelPage() {
   const pickerGasStations = userId ? await listPickerGasStationsForUser(userId) : [];
 
   // 連携していない人の履歴に家計簿の話は出さない。
-  const kakeiboEnabled = Boolean(userId) && isKakeiboAvailableFor(user?.email);
+  const kakeiboEnabled = Boolean(userId) && (await isKakeiboAvailableFor(user?.email));
 
   return (
     <main className="flex min-h-full flex-1 flex-col">

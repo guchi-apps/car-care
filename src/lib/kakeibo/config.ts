@@ -12,6 +12,8 @@
  * car-care → Asset Manager → AIDE → Zaim Web 版 になる。
  */
 
+import { getSharedToken } from "@/lib/shared-token";
+
 /**
  * 送信先の既定値。本番では Asset Manager も同じ VPS 上で動いているため 127.0.0.1 で叩ける
  * （外部公開は不要）。ポートの正はポート台帳（`guchi-apps/docs` の `standards/ports.md`）。
@@ -28,8 +30,18 @@ export type AssetManagerEndpoint = {
   secret: string;
 };
 
-export function getAssetManagerEndpoint(): AssetManagerEndpoint | null {
-  const secret = process.env.ASSET_MANAGER_IMPORT_SECRET?.trim();
+/** issue-deck の共有トークン名。Asset Manager 側の ZAIM_SYNC_SECRET と同じ値（#212）。 */
+export const ASSET_MANAGER_SHARED_TOKEN_NAME = "ASSET_MANAGER_ZAIM_SYNC_SECRET";
+
+/**
+ * 共有トークンを優先し、取得できなければ環境変数 ASSET_MANAGER_IMPORT_SECRET へ
+ * フォールバックする。フォールバックに黙って落ちていないかは、issue-deck の設定画面で
+ * 利用元に car-care が出ているかで確認できる。
+ */
+export async function getAssetManagerEndpoint(): Promise<AssetManagerEndpoint | null> {
+  const secret =
+    (await getSharedToken(ASSET_MANAGER_SHARED_TOKEN_NAME)) ??
+    process.env.ASSET_MANAGER_IMPORT_SECRET?.trim();
 
   if (!secret) {
     return null;
@@ -64,6 +76,11 @@ export function isKakeiboAllowedEmail(email: string | null | undefined): boolean
 }
 
 /** 画面に「家計簿連携」を出してよいか（送信先が設定されていて、かつ許可されたアカウント）。 */
-export function isKakeiboAvailableFor(email: string | null | undefined): boolean {
-  return getAssetManagerEndpoint() !== null && isKakeiboAllowedEmail(email);
+export async function isKakeiboAvailableFor(
+  email: string | null | undefined,
+): Promise<boolean> {
+  // 許可されていないアカウントでは共有トークンを取りに行かない。
+  if (!isKakeiboAllowedEmail(email)) return false;
+
+  return (await getAssetManagerEndpoint()) !== null;
 }

@@ -157,6 +157,7 @@
 | `ALLOWED_GOOGLE_EMAILS` | ログインを許可する Google アカウント | カンマ区切り。**未設定だと誰もログインできない**（#27） |
 | `SIGNALY_LOGIN_WEBHOOK_URL` | 通知（新規登録・ログイン共通） | 任意。未設定なら通知をスキップ |
 | `ASSET_MANAGER_IMPORT_SECRET` | Asset Manager の取り込み口の認証 | Asset Manager 側の `ZAIM_SYNC_SECRET` と同じ値。未設定なら「家計簿連携」を出さない（#141） |
+| `SHARED_TOKEN_API_SECRET` / `ISSUE_DECK_URL` | issue-deck の共有トークン API（#212） | 両方そろうと、`ASSET_MANAGER_IMPORT_SECRET` より共有トークン `ASSET_MANAGER_ZAIM_SYNC_SECRET` を優先する。任意 |
 | `ASSET_MANAGER_URL` | 送信先 | 任意。未設定なら `http://127.0.0.1:3102`。ローカルで確認するときは指定する（#141） |
 | `ZAIM_ALLOWED_EMAILS` | 家計簿連携を使ってよい Google アカウント | カンマ区切り。**未設定なら誰も使えない**（#26） |
 
@@ -174,6 +175,7 @@
 | `PORT` (`port`) | 待受ポート |
 | `ASSET_MANAGER_IMPORT_SECRET` (`op://apps/aide/asset-manager-zaim-sync-secret`) | Asset Manager の取り込み口の認証。AIDE・Asset Manager と同じ値（#141） |
 | `ZAIM_ALLOWED_EMAILS` (`zaim-allowed-emails`) | 家計簿連携を使ってよい Google アカウント（#26） |
+| `SHARED_TOKEN_API_SECRET` (`op://apps/issue-deck/shared-token-api-secret`) / `ISSUE_DECK_URL`（organization variable `APP_BASE_URL`） | 共有トークンの取得（#212）。取得できなければ `ASSET_MANAGER_IMPORT_SECRET` へフォールバック。利用元は issue-deck の設定画面で確認する |
 
 ---
 
