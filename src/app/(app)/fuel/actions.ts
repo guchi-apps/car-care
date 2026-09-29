@@ -50,7 +50,7 @@ async function scheduleKakeiboSend(
   userEmail: string | null,
   fuelLogId: string,
 ): Promise<KakeiboSendResult> {
-  if (!isKakeiboAvailableFor(userEmail)) {
+  if (!(await isKakeiboAvailableFor(userEmail))) {
     return { status: "unavailable" };
   }
 
