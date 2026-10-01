@@ -57,9 +57,14 @@ jobs:
         ^\.github/secrets-manifest\.tsv$ :: シークレット定義の変更 (.github/secrets-manifest.tsv)
         (^|/)requirements[^/]*\.txt$|(^|/)pyproject\.toml$|(^|/)Pipfile$ :: 依存関係の変更 (requirements*.txt, pyproject.toml, Pipfile)
         /package\.json$ :: ルート以外の依存関係の変更 (frontend/package.json など。dependency-checkはルートしか見ない)
+        ^src/(proxy\.ts$|lib/(supabase/|auth-user\.ts$|allowed-users\.ts$|auth-header\.ts$|request-origin\.ts$)) :: 認証・認可の変更 (src/proxy.ts, src/lib/supabase/**, auth-user, allowed-users など)
+        ^src/lib/(shared-token\.ts$|kakeibo/) :: 外部連携の認証値・送信処理の変更 (shared-token, kakeibo/**)
       # 上の uses: と同じタグを指定する。片方だけ上げると新しいワークフローで
       # 古いプロンプトが使われる。
       prompts-ref: workflows/v41
+      # claude-reviewを実行する差分規模の閾値（既定は10ファイル / 500行。#221で引き下げ）
+      review-file-threshold: "5"
+      review-line-threshold: "200"
     secrets: inherit
     permissions:
       contents: write
