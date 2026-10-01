@@ -237,6 +237,7 @@ DevOps:   ecosystem.config.js, .github/workflows/ci.yml, .github/workflows/deplo
 
 | 日付 | 内容 |
 |------|------|
+| 2026-10-01 | 登録店舗の距離が 9999km のように実際より大きく表示される不具合を修正。OSM の ID は node / way / relation で番号が独立しているのに、osmId から座標を引くときに同じ番号の別種別の要素（海外の無関係な node など）を拾って保存していた。Overpass・Nominatim とも給油所のタグ（`amenity=fuel` / `shop=fuel`）を持つ要素だけを採るように直し、osmId のある行の保存済み座標をマイグレーションで一度クリアして取り直させる（#223） |
 | 2026-09-22 | 登録店舗を削除しても画面を開き直すたびに復活する不具合を修正。`RegisteredGasStation` に論理削除用の `deleted_at` を追加し、削除は物理削除ではなくこのフラグを立てる形に変更。給油記録から登録店舗を作り直す sync 処理・給油記録保存時の自動登録の両方で、削除済みの行を復活させないようにした（#178） |
 | 2026-09-22 | 給油記録の登録・更新（`createFuelLogAction`/`updateFuelLogAction`）で、記録自体は保存済みなのに登録店舗の更新（`upsertRegisteredGasStationFromFuelLog`）が unique 制約に衝突して例外を投げ、「登録に失敗しました」と表示されて利用者が二重入力してしまう不具合を修正。同関数を osmId・registeredName の両方の候補で既存行を先に引き当てる方式（#179 と同じ考え方）に直し、あわせて登録店舗更新の失敗を家計簿送信と同じ「おまけ」扱いにして給油記録の保存自体は失敗にしないようにした（#177、起点は #167） |
 | 2026-09-22 | `notifySignalyLogin()` が読む環境変数名だけ `SIGNALY_WEBHOOK_LOGIN_URL`（旧名）のままで、#119 の改名（`SIGNALY_LOGIN_WEBHOOK_URL` へ）に追従しておらず、本番でログイン通知が一度も送られていなかった不具合を修正。`src/lib/signaly.ts` の参照先を新名へ合わせた（#176、起点は #167） |

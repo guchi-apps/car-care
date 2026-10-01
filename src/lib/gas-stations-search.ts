@@ -15,6 +15,9 @@ type NominatimResult = {
   place_id: number;
   osm_type: string;
   osm_id: number;
+  // format=json の lookup / search が返す分類（例: class="amenity", type="fuel"）。
+  class?: string;
+  type?: string;
   lat: string;
   lon: string;
   name?: string;
@@ -83,6 +86,20 @@ function haversineDistanceMeters(
       Math.sin(deltaLon / 2) ** 2;
 
   return earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// OSM の ID は node / way / relation で番号が独立しており、登録店舗は種別を持たない番号だけを
+// 保存している。同じ番号の別種別（海外の無関係な node など）を拾うと距離が数千 km になるため、
+// 番号から座標を引くときは給油所のタグを持つ要素だけを採用する（#223）。
+function isFuelTags(tags: Record<string, string> | undefined): boolean {
+  return tags?.amenity === "fuel" || tags?.shop === "fuel";
+}
+
+function isFuelNominatimResult(result: NominatimResult): boolean {
+  return (
+    result.type === "fuel" &&
+    (result.class === "amenity" || result.class === "shop")
+  );
 }
 
 function getBoundingViewbox(lat: number, lon: number, radiusMeters: number): string {
@@ -498,7 +515,12 @@ async function lookupGasStationFromNominatim(
         continue;
       }
 
-      const result = results[0];
+      const result = results.find(isFuelNominatimResult);
+
+      if (!result) {
+        continue;
+      }
+
       const lat = Number.parseFloat(result.lat);
       const lon = Number.parseFloat(result.lon);
 
@@ -572,6 +594,10 @@ export async function lookupGasStationByOsmId(
 
   if (combinedData?.elements.length) {
     for (const element of combinedData.elements) {
+      if (!isFuelTags(element.tags)) {
+        continue;
+      }
+
       const station = mapOverpassElementToStation(element, osmId);
 
       if (station) {
@@ -749,6 +775,10 @@ export async function lookupGasStationsByOsmIds(
 
   if (data) {
     for (const element of data.elements) {
+      if (!isFuelTags(element.tags)) {
+        continue;
+      }
+
       const point = getOverpassCoordinates(element);
 
       if (point) {
