@@ -41,7 +41,7 @@ on:
 
 jobs:
   review:
-    uses: guchi-apps/issue-deck/.github/workflows/reusable-claude-review-develop.yml@workflows/v41
+    uses: guchi-apps/issue-deck/.github/workflows/reusable-claude-review-develop.yml@workflows/v43
     with:
       # 内蔵パターンでは拾えないもののうち、**どのリポジトリにも共通で置けるぶん**だけ。
       #
@@ -61,7 +61,7 @@ jobs:
         ^src/lib/(shared-token\.ts$|kakeibo/) :: 外部連携の認証値・送信処理の変更 (shared-token, kakeibo/**)
       # 上の uses: と同じタグを指定する。片方だけ上げると新しいワークフローで
       # 古いプロンプトが使われる。
-      prompts-ref: workflows/v41
+      prompts-ref: workflows/v43
       # claude-reviewを実行する差分規模の閾値（既定は10ファイル / 500行。#221で引き下げ）
       review-file-threshold: "5"
       review-line-threshold: "200"
