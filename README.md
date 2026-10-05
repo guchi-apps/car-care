@@ -55,7 +55,7 @@ cp .env.local.example .env.local
 
 **開発用**（本番とは別）の Supabase プロジェクトの `project-url` / `publishable-key` を `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` に設定します。Supabase ダッシュボードの **Authentication > URL Configuration > Redirect URLs** に `http://localhost:3000/auth/callback` を登録してください。
 
-`ALLOWED_GOOGLE_EMAILS` にログインを許可する Google アカウントをカンマ区切りで設定します。**未設定だと誰もログインできません**（共有 Supabase プロジェクトを他アプリと共用しているため、Supabase 側でログインできることと Car Care を使ってよいことを別に判定しています）。
+ログインを許可する Google アカウントは StatusHub の共通アクセス設定（管理画面「アプリ」）で管理します。判定できないとき（トークン未設定など）は誰もログインできません（共有 Supabase プロジェクトを他アプリと共用しているため、Supabase 側でログインできることと Car Care を使ってよいことを別に判定しています）。旧 `ALLOWED_GOOGLE_EMAILS` は参照しません。
 
 `service_role` キーはフロントエンドにもリポジトリにも置きません。
 
