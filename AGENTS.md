@@ -24,7 +24,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ```bash
 cp .env.local.example .env.local
-# DB_NAME / DB_USER / DB_PASSWORD と、開発用 Supabase の URL・publishable key、ALLOWED_GOOGLE_EMAILS を設定
+# DB_NAME / DB_USER / DB_PASSWORD と、開発用 Supabase の URL・publishable key を設定
 npm run db:setup && npm run db:migrate
 ```
 
@@ -80,7 +80,7 @@ npm run dev:prod-db:tunnel
 | 全リクエストのセッション検証・認証ガード | `src/proxy.ts` → `src/lib/supabase/proxy-session.ts` |
 | ログイン開始 / コールバック / ログアウト | `src/app/auth/{signin,callback,signout}/route.ts` |
 | ログイン中ユーザーの取得 | `src/lib/auth-user.ts`（`getCurrentUser()` / `requireUserId()`） |
-| 許可 Google アカウント判定 | `src/lib/allowed-users.ts`（`ALLOWED_GOOGLE_EMAILS`） |
+| 許可 Google アカウント判定 | `src/lib/access/`（StatusHub の判定API。`client.ts` が呼び出し・`decision.ts` がキャッシュ/失効規則・`src/instrumentation.ts` がハートビート） |
 
 触るときに引っかかりやすい点:
 
@@ -103,6 +103,11 @@ npm run dev:prod-db:tunnel
   失効させる。このアプリのセッションだけを捨てるので `local` を明示している（#169）。直接呼ぶ箇所が
   残っていると `npm test` が落ちる。アカウントごと削除する操作を将来作るときだけ、全セッションを
   終了する意図をコメントで明示して `global` を使う
+- **ログイン許可は StatusHub の判定APIで決める（#237）。旧 `ALLOWED_GOOGLE_EMAILS` を判定にもフォールバックにも使わない。**
+  フォールバックすると、StatusHub で取り消した利用者が通ってしまう。判定は `proxy-session.ts` が毎リクエスト
+  （30 秒キャッシュ）で行い、ログイン済みの利用者にも取り消しが効く。StatusHub へ届かないときは直前の判定を
+  5 分まで使い、超過・未判定は拒否。トークンは issue-deck の共有トークン `CAR_CARE_ACCESS_APP_TOKEN`
+  （管理画面「アプリ」の「トークン発行」で自動登録）から読む
 - **リダイレクト先の origin は Host ヘッダーから組む**（`src/lib/request-origin.ts`）。
   `request.url` は 0.0.0.0 待受や sslip.io 経由で実際のホスト名を反映しないことがある
 

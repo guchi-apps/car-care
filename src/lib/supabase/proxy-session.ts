@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { isUserAllowed } from "@/lib/access/client";
 import { SUPABASE_USER_ID_HEADER } from "@/lib/auth-header";
 import { getRequestOrigin, safeNextPath } from "@/lib/request-origin";
 
@@ -44,7 +45,7 @@ export async function updateSession(request: NextRequest) {
   // Supabase 側で検証させる（自前でデコードしない）。届かなかったときの戻り値は未ログインと
   // 同じ user: null なので、error を見ないと「セッションが無い」と「今は確認できない」を取り違える。
   const {
-    data: { user },
+    data: { user: authenticatedUser },
     error,
   } = await supabase.auth.getUser();
 
@@ -55,6 +56,16 @@ export async function updateSession(request: NextRequest) {
       `[car-care] Supabase Auth へ到達できずセッションを確認できない: ${request.nextUrl.pathname} ${error?.status ?? ""} ${error?.message ?? ""}`,
     );
   }
+
+  // StatusHub の共通アクセス設定（src/lib/access）で許可されなくなったメールアドレスは、Supabase の
+  // セッションが有効なままでも未ログインと同じに扱う。取り消しをログイン済みの利用者にも効かせるため。
+  // ここで null にしておかないと、下の「/login をログイン済みユーザーが開いたら戻す」判定が
+  // 生の Supabase ユーザーだけを見て、保護ページとの間で往復しかねない。
+  // 判定は 30 秒キャッシュされ、StatusHub へ届かないときは 5 分まで直前の値、超えたら拒否になる。
+  const user =
+    authenticatedUser && !authUnreachable && (await isUserAllowed(authenticatedUser))
+      ? authenticatedUser
+      : null;
 
   // 検証済みのユーザー ID を後段へ渡し、ページ側が同じ検証を繰り返さずに済むようにする。
   // getUser() は毎回 Supabase へ往復するため、1 リクエストで 2 回叩くと待ち時間がそのまま倍になる。

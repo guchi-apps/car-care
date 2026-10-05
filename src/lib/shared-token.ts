@@ -107,3 +107,8 @@ export async function getSharedToken(name: string): Promise<string | null> {
 
   return result.value;
 }
+
+/** 1つの名前のキャッシュだけ捨てる。再発行で失効した値を握り続けないために、認証の401で呼ぶ。 */
+export function forgetSharedToken(name: string): void {
+  caches.delete(name);
+}
