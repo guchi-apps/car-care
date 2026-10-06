@@ -1,6 +1,6 @@
 import { after, NextResponse, type NextRequest } from "next/server";
 
-import { isAllowedEmail } from "@/lib/allowed-users";
+import { isUserAllowed } from "@/lib/access/client";
 import { prisma } from "@/lib/prisma";
 import { getRequestOrigin, safeNextPath } from "@/lib/request-origin";
 import { notifySignalyLogin } from "@/lib/signaly";
@@ -32,9 +32,9 @@ export async function GET(request: NextRequest) {
   const email = user.email ?? null;
 
   // 共有 Supabase プロジェクトを他アプリと共用しているため、Supabase でログインできることと
-  // Car Care を使ってよいことは別に判定する。許可外のアカウントは Car Care 側のユーザーを
+  // Car Care を使ってよいことは別に判定する（StatusHub の共通アクセス設定）。許可外のアカウントは Car Care 側のユーザーを
   // 作らず、このアプリのセッションも破棄する（他アプリのセッションは巻き込まない）。
-  if (!isAllowedEmail(email)) {
+  if (!(await isUserAllowed(user))) {
     await signOutThisApp(supabase);
     return NextResponse.redirect(`${origin}/login?error=not_allowed`);
   }

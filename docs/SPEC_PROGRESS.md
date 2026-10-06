@@ -44,7 +44,7 @@
 | Next.js App Router + TypeScript + Tailwind | ✅ | プロジェクト全体 |
 | MySQL + Prisma | ✅ | `prisma/schema.prisma`, `prisma/migrations/` |
 | Supabase Auth（Google） | ✅ | `src/lib/supabase/`, `src/app/auth/`, `src/proxy.ts`（本番 / 開発で別 Supabase プロジェクト。開発用は `.env.local`）（#27） |
-| 許可 Google アカウント判定 | ✅ | `src/lib/allowed-users.ts`（`ALLOWED_GOOGLE_EMAILS`）（#27） |
+| 許可 Google アカウント判定 | ✅ | `src/lib/access/`（StatusHub の共通アクセス設定の判定API。`src/instrumentation.ts` がハートビート）（#27・#237） |
 | WebAuthn / Passkey | 🚫 | Supabase Auth 移行に伴い廃止（#27）。`authenticators` テーブルは切り戻し用に残置 |
 | Signaly Webhook（ログイン通知） | ✅ | `src/lib/signaly.ts`, `src/app/auth/callback/route.ts` |
 | PWA | ✅ | `public/manifest.json`, `public/sw.js`, `public/icons/`, `app-bottom-nav.tsx`, `app-page.tsx` |
@@ -79,7 +79,7 @@
 | 要件 | 状態 | 備考 |
 |------|------|------|
 | Google ログイン | ✅ | Supabase Auth 経由（#27）。`/auth/signin` → Google → `/auth/callback` |
-| 許可外 Google アカウントの拒否 | ✅ | `ALLOWED_GOOGLE_EMAILS`。拒否時は users を作らず、このアプリのセッションも破棄（#27）。破棄は `local` scope で他アプリのセッションは失効させない（#169） |
+| 許可外 Google アカウントの拒否 | ✅ | StatusHub の判定API（#237。旧 `ALLOWED_GOOGLE_EMAILS` は参照しない）。ログイン済みの利用者にも毎リクエスト（30 秒キャッシュ）で効く。拒否時は users を作らず、このアプリのセッションも破棄（#27）。破棄は `local` scope で他アプリのセッションは失効させない（#169） |
 | パスキー登録 → 2回目以降顔認証ログイン | 🚫 | Supabase Auth 移行に伴い廃止（#27） |
 | Signaly ログイン通知（新規登録・既存ログイン共通） | ✅ | `/auth/callback` → `SIGNALY_LOGIN_WEBHOOK_URL`（Discord から移行済み） |
 | 未ログイン時の認証ガード | ✅ | `src/proxy.ts`（Next.js 16 で `middleware.ts` から改称） |
@@ -154,7 +154,7 @@
 |------|------|------|
 | `DB_NAME`, `DB_USER`, `DB_PASSWORD` | ローカル DB 認証 | 値は自由。`npm run db:setup` でユーザー・DB 作成 |
 | `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase Auth（開発用プロジェクト） | 本番用とは別プロジェクト（#27）。`service_role` キーは使わない |
-| `ALLOWED_GOOGLE_EMAILS` | ログインを許可する Google アカウント | カンマ区切り。**未設定だと誰もログインできない**（#27） |
+| `ACCESS_API_URL` | StatusHub 判定APIの宛先 | 任意。未設定は本番の StatusHub。トークンは issue-deck の共有トークン `CAR_CARE_ACCESS_APP_TOKEN`（#237） |
 | `SIGNALY_LOGIN_WEBHOOK_URL` | 通知（新規登録・ログイン共通） | 任意。未設定なら通知をスキップ |
 | `ASSET_MANAGER_IMPORT_SECRET` | Asset Manager の取り込み口の認証 | Asset Manager 側の `ZAIM_SYNC_SECRET` と同じ値。未設定なら「家計簿連携」を出さない（#141） |
 | `SHARED_TOKEN_API_SECRET` / `ISSUE_DECK_URL` | issue-deck の共有トークン API（#212） | 両方そろうと、`ASSET_MANAGER_IMPORT_SECRET` より共有トークン `ASSET_MANAGER_ZAIM_SYNC_SECRET` を優先する。任意 |
@@ -167,7 +167,7 @@
 |------|------|
 | `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_HOST`, `DB_PORT` | DB 認証・接続先（ローカルから本番 DB 確認する場合は `.env.op` も使用） |
 | `SSH_HOST`, `SSH_USER`, `SSH_PORT` | 本番 DB SSH トンネル |
-| `ALLOWED_GOOGLE_EMAILS` (`allowed-google-emails`) | ログインを許可する Google アカウント（#27） |
+| `ALLOWED_GOOGLE_EMAILS` (`allowed-google-emails`) | **旧**ログイン許可リスト。#237 でコードから参照しなくなった（旧設定の整理は移行検証後） |
 | `AUTH_URL` | 公開 URL（アプリからは参照しない。Supabase の Redirect URLs 登録・Apache VirtualHost 生成で使う） |
 | `SIGNALY_LOGIN_WEBHOOK_URL` | 通知（新規登録・ログイン共通）。全アプリ共通のため organization secret から渡る（値の正は `op://apps/Notify/login-webhook-url`） |
 | `MIGRATE_DB_USER`, `MIGRATE_DB_PASSWORD` | マイグレーション専用 DB ユーザー（`ALTER` 権限あり。organization の共通値。未設定なら通常ユーザーへフォールバック） |
@@ -194,7 +194,7 @@
 ## 主要ファイル索引（Agent 用）
 
 ```
-認証:     src/proxy.ts, src/lib/supabase/（`sign-out.ts` = local scope のログアウト）, src/lib/auth-user.ts, src/lib/allowed-users.ts, src/lib/auth-header.ts, src/lib/request-origin.ts, src/app/auth/, src/app/login/
+認証:     src/proxy.ts, src/lib/supabase/（`sign-out.ts` = local scope のログアウト）, src/lib/auth-user.ts, src/lib/access/, src/instrumentation.ts, src/lib/auth-header.ts, src/lib/request-origin.ts, src/app/auth/, src/app/login/
 車両:     src/app/vehicles/, src/components/vehicle-form.tsx, src/components/vehicle-list.tsx, src/lib/vehicles.ts
 給油:     src/app/(app)/fuel/, src/components/fuel-*.tsx, src/lib/fuel-*.ts, src/app/api/gas-stations/route.ts
 メンテ:   src/app/(app)/maintenance/, src/components/maintenance-*.tsx, src/lib/maintenance-*.ts

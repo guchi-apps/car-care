@@ -41,7 +41,7 @@ on:
 
 jobs:
   review:
-    uses: guchi-apps/issue-deck/.github/workflows/reusable-claude-review-develop.yml@workflows/v45
+    uses: guchi-apps/issue-deck/.github/workflows/reusable-claude-review-develop.yml@workflows/v46
     with:
       # 内蔵パターンでは拾えないもののうち、**どのリポジトリにも共通で置けるぶん**だけ。
       #
@@ -57,11 +57,11 @@ jobs:
         ^\.github/secrets-manifest\.tsv$ :: シークレット定義の変更 (.github/secrets-manifest.tsv)
         (^|/)requirements[^/]*\.txt$|(^|/)pyproject\.toml$|(^|/)Pipfile$ :: 依存関係の変更 (requirements*.txt, pyproject.toml, Pipfile)
         /package\.json$ :: ルート以外の依存関係の変更 (frontend/package.json など。dependency-checkはルートしか見ない)
-        ^src/(proxy\.ts$|lib/(supabase/|auth-user\.ts$|allowed-users\.ts$|auth-header\.ts$|request-origin\.ts$)) :: 認証・認可の変更 (src/proxy.ts, src/lib/supabase/**, auth-user, allowed-users など)
+        ^src/(proxy\.ts$|lib/(supabase/|access/|auth-user\.ts$|auth-header\.ts$|request-origin\.ts$)) :: 認証・認可の変更 (src/proxy.ts, src/lib/supabase/**, auth-user, access/** など)
         ^src/lib/(shared-token\.ts$|kakeibo/) :: 外部連携の認証値・送信処理の変更 (shared-token, kakeibo/**)
       # 上の uses: と同じタグを指定する。片方だけ上げると新しいワークフローで
       # 古いプロンプトが使われる。
-      prompts-ref: workflows/v45
+      prompts-ref: workflows/v46
       # claude-reviewを実行する差分規模の閾値（既定は10ファイル / 500行。#221で引き下げ）
       review-file-threshold: "5"
       review-line-threshold: "200"
