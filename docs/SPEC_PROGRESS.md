@@ -131,7 +131,7 @@
 | 要件 | 状態 | 備考 |
 |------|------|------|
 | コミットの author | ✅ | 現在は `Claude Code`。`Cursor AI` は初期の機能コミット、Initial commit は別作者 |
-| `develop` で開発 → `main` で安定版 | ✅ | 機能は Issue ごとの `issue-<番号>` ブランチ → `develop`。`develop` → `main` はバージョン bump PR（`release/vX.Y.Z`）を経て `release-main/vX.Y.Z` の PR で行う（`release-develop-to-main.yml`。`main` へのマージは人間が手動で行う） |
+| `develop` で開発 → `main` で安定版 | ✅ | 機能は Issue ごとの `issue-<番号>` ブランチ → `develop`。`develop` → `main` はバージョン bump PR（`release/vX.Y.Z`）を経て `release-main/vX.Y.Z` の PR で行う（`release-develop-to-main.yml`。`main` へのマージは人間が手動で行う）。issue-deck の画面からの新方式（候補作成 `release-rc/<番号>` → 公開準備 → 本番反映）にも caller が対応済み（#251） |
 | `main` マージ時 GitHub Actions デプロイ | ✅ | `deploy.yml`。稼働中 |
 | `main` マージ時 Git tag / GitHub Release | ✅ | `package.json` version から `v*` タグを自動作成し、デプロイ成功後に Release を作る。バージョンを据え置いたままの `main` 向け PR は `version-tag-check.yml` が落とす |
 | CI Signaly 通知 | ✅ | `.github/workflows/ci.yml`（失敗時 + `main` 向け PR のみ、Discord から Signaly へ移行済み） |
@@ -237,6 +237,7 @@ DevOps:   ecosystem.config.js, .github/workflows/ci.yml, .github/workflows/deplo
 
 | 日付 | 内容 |
 |------|------|
+| 2026-10-16 | リリース workflow（`release-develop-to-main.yml`）の caller に新方式の入口 `candidate_request`・`finalize_request` を追加し、issue-deck の画面から「候補を作成して検証」→公開準備を起動できるようにした。参照タグは `workflows/v52` のまま（両入力と develop 同期追跡 #4641 を含む）。**同期 push で旧方式のバンプを始めない修正（issue-deck#4650）を含む公開済みタグがまだ無いため、本番対応済みとはしない**。そのタグへの参照更新と通しの確認は issue-deck#4651 で追跡する（#251） |
 | 2026-10-01 | 登録店舗の距離が 9999km のように実際より大きく表示される不具合を修正。OSM の ID は node / way / relation で番号が独立しているのに、osmId から座標を引くときに同じ番号の別種別の要素（海外の無関係な node など）を拾って保存していた。Overpass・Nominatim とも給油所のタグ（`amenity=fuel` / `shop=fuel`）を持つ要素だけを採るように直し、osmId のある行の保存済み座標をマイグレーションで一度クリアして取り直させる（#223） |
 | 2026-09-22 | 登録店舗を削除しても画面を開き直すたびに復活する不具合を修正。`RegisteredGasStation` に論理削除用の `deleted_at` を追加し、削除は物理削除ではなくこのフラグを立てる形に変更。給油記録から登録店舗を作り直す sync 処理・給油記録保存時の自動登録の両方で、削除済みの行を復活させないようにした（#178） |
 | 2026-09-22 | 給油記録の登録・更新（`createFuelLogAction`/`updateFuelLogAction`）で、記録自体は保存済みなのに登録店舗の更新（`upsertRegisteredGasStationFromFuelLog`）が unique 制約に衝突して例外を投げ、「登録に失敗しました」と表示されて利用者が二重入力してしまう不具合を修正。同関数を osmId・registeredName の両方の候補で既存行を先に引き当てる方式（#179 と同じ考え方）に直し、あわせて登録店舗更新の失敗を家計簿送信と同じ「おまけ」扱いにして給油記録の保存自体は失敗にしないようにした（#177、起点は #167） |
