@@ -5,11 +5,17 @@ import mariadb from "mariadb";
 
 import { MIGRATION_REPAIRS } from "./migration-repairs.mjs";
 
-const host = process.env.DB_HOST?.trim() || "127.0.0.1";
-const port = Number(process.env.DB_PORT?.trim() || "3306");
-const user = process.env.DB_USER?.trim();
-const password = process.env.DB_PASSWORD;
-const database = process.env.DB_NAME?.trim();
+// 本番デプロイ（app-deploy-gate。#259）は、マイグレーション専用ユーザーの接続先を
+// MIGRATE_DATABASE_URL で渡す（deploy/pre-migrate.sh）。あればそちらを使い、無ければ従来どおり
+// DB_*（.env の通常ユーザー、または前置きで上書きした値）から接続する。
+const migrateUrl = process.env.MIGRATE_DATABASE_URL?.trim();
+const parsed = migrateUrl ? new URL(migrateUrl) : null;
+
+const host = (parsed ? parsed.hostname : process.env.DB_HOST?.trim()) || "127.0.0.1";
+const port = Number((parsed ? parsed.port : process.env.DB_PORT?.trim()) || "3306");
+const user = parsed ? decodeURIComponent(parsed.username) : process.env.DB_USER?.trim();
+const password = parsed ? decodeURIComponent(parsed.password) : process.env.DB_PASSWORD;
+const database = parsed ? decodeURIComponent(parsed.pathname.replace(/^\//, "")) : process.env.DB_NAME?.trim();
 
 if (!user || password == null || password === "" || !database) {
   console.error("NG: .env に DB_USER / DB_PASSWORD / DB_NAME がありません。");
