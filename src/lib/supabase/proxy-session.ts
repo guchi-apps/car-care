@@ -5,7 +5,15 @@ import { isUserAllowed } from "@/lib/access/client";
 import { SUPABASE_USER_ID_HEADER } from "@/lib/auth-header";
 import { getRequestOrigin, safeNextPath } from "@/lib/request-origin";
 
-const publicPaths = ["/login", "/auth/signin", "/auth/callback", "/auth/signout"];
+// /api/app-version はデプロイのヘルスチェック（127.0.0.1）が未ログインで叩くため公開する。
+// Supabase Auth へ届かないときの 503 にも巻き込まれない。返すのはバージョンとコミット SHA のみ。
+const publicPaths = [
+  "/login",
+  "/auth/signin",
+  "/auth/callback",
+  "/auth/signout",
+  "/api/app-version",
+];
 
 function isPublicPath(pathname: string): boolean {
   return publicPaths.some(

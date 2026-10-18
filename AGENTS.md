@@ -205,10 +205,21 @@ AIDE 経由で Zaim の Web 版（my.zaim.net）の入力画面から行う。
 無い。DDL を伴う処理はマイグレーション専用ユーザー（`SHARED_DB_MIGRATE_USER` /
 `SHARED_DB_MIGRATE_PASSWORD`。organization の Secrets で全アプリ共通）で実行する。
 
-`.github/workflows/deploy.yml` の `deploy` ジョブで、専用ユーザーへ切り替えているのは次の2か所。
+本番デプロイは VPS の `app-deploy-gate`（`guchi-apps/vps#275`）を通す（#259）。`deploy.yml` の `deploy` ジョブは
+**アプリ専用の鍵**（マニフェストの `SSH_PRIVATE_KEY`＝`op://apps/car-care/deploy-ssh-key`）で `ssh … upload` → `ssh … env` →
+`ssh … deploy` の3語だけを呼び、展開・`.env` 更新・`npm ci`・マイグレーション・pm2（`ecosystem.config.js` の `car-app`）・
+稼働版の照合（`/api/app-version` の `sha` と `APP_COMMIT_SHA`）は gate が行う（`guchi-apps/vps#298`・`#300`）。
+`deploy.yml` 自身はもう SSH 先でシェルを実行しない。
 
-- `npx prisma migrate deploy`
-- `node scripts/reconcile-migrations-deploy.mjs`（`scripts/migration-repairs.mjs` の `ALTER TABLE` を実行しうる）
+gate は `MIGRATE_DATABASE_URL` を `.env` へ書かず、次の2か所だけをマイグレーション専用ユーザーで実行する。
+
+- `deploy/pre-migrate.sh` → `node scripts/reconcile-migrations-deploy.mjs`（`scripts/migration-repairs.mjs` の `ALTER TABLE` を実行しうる。
+  `MIGRATE_DATABASE_URL` があればその接続先を使う）
+- `prisma migrate deploy`（Prisma CLI は devDependencies にあるため、gate がマイグレーションの間だけ全依存を入れる）
+
+鍵の発行・VPS での登録（`sudo scripts/setup-app-keys.sh add --app <置き場の名前>`）・GitHub への同期は人の作業で、
+**`develop`→`main` のリリース PR をマージする前に**済ませる（済ませないと本番デプロイが鍵で失敗する）。
+gate のアプリ名は置き場（`/home/github-user/apps/<名前>`）の名前に合わせる。
 
 触るときに引っかかりやすい点:
 
@@ -217,7 +228,7 @@ AIDE 経由で Zaim の Web 版（my.zaim.net）の入力画面から行う。
 - **失敗した記録が `_prisma_migrations` に残ると、以降どのデプロイも同じ場所で止まる**（Prisma の
   P3018）。`reconcile-migrations-deploy.mjs` が未完了の記録をロールバック扱いにして復帰させている
 - **`reconcile-migrations-deploy.mjs` は `import "dotenv/config"` を使う。** dotenv は既存の環境変数を
-  上書きしないので、`deploy.yml` 側で `DB_USER=... node ...` と前置きすれば `.env`（通常ユーザー）より
+  上書きしないので、gate が渡す `MIGRATE_DATABASE_URL`（または `DB_USER=... node ...` の前置き）が `.env`（通常ユーザー）より
   優先される。逆に `.env` を書き換えて切り替えようとしてはいけない（ランタイムの接続情報が変わる）
 - **`MIGRATE_*` が未設定の環境では通常ユーザーへフォールバックする。** Secrets を持たない fork や
   検証用リポジトリでもデプロイ手順が壊れないようにするため

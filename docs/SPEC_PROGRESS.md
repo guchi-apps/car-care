@@ -136,7 +136,7 @@
 | `main` マージ時 Git tag / GitHub Release | ✅ | `package.json` version から `v*` タグを自動作成し、デプロイ成功後に Release を作る。バージョンを据え置いたままの `main` 向け PR は `version-tag-check.yml` が落とす |
 | CI Signaly 通知 | ✅ | `.github/workflows/ci.yml`（失敗時 + `main` 向け PR のみ、Discord から Signaly へ移行済み） |
 
-デプロイ手順（workflow）: tag → build → deploy →（成功時のみ）release。build で `npm run build:ci` → tar 転送 → VPS で `.env` 同期 → `prisma migrate deploy` → `pm2 reload`
+デプロイ手順（workflow）: tag → build → deploy →（成功時のみ）release。build で `npm run build:ci` → VPS の `app-deploy-gate` へ `upload`・`env`・`deploy`（gate が `.env` 同期 → `npm ci` → `deploy/pre-migrate.sh` → `prisma migrate deploy` → pm2 再起動 → 稼働版の照合。#259）
 
 ### ⑦ 1Password & 機密情報
 
@@ -237,6 +237,7 @@ DevOps:   ecosystem.config.js, .github/workflows/ci.yml, .github/workflows/deplo
 
 | 日付 | 内容 |
 |------|------|
+| 2026-10-18 | 本番デプロイを VPS の `app-deploy-gate` 経由へ移した。organization 共通鍵で SSH 先のシェルを動かす形をやめ、アプリ専用鍵で `upload`・`env`・`deploy` だけを呼ぶ。展開・`.env` 更新・`npm ci`・マイグレーション（直前に `deploy/pre-migrate.sh` でスキーマのずれを補修）・pm2・稼働版の照合は gate が行う（gate 側の対応は guchi-apps/vps#300）。鍵の発行・VPS での登録・同期は、`main` へのリリース前に人が行う（#259） |
 | 2026-10-16 | リリース workflow（`release-develop-to-main.yml`）の caller に新方式の入口 `candidate_request`・`finalize_request` を追加し、issue-deck の画面から「候補を作成して検証」→公開準備を起動できるようにした。参照タグは `workflows/v52` のまま（両入力と develop 同期追跡 #4641 を含む）。**同期 push で旧方式のバンプを始めない修正（issue-deck#4650）を含む公開済みタグがまだ無いため、本番対応済みとはしない**。そのタグへの参照更新と通しの確認は issue-deck#4651 で追跡する（#251） |
 | 2026-10-01 | 登録店舗の距離が 9999km のように実際より大きく表示される不具合を修正。OSM の ID は node / way / relation で番号が独立しているのに、osmId から座標を引くときに同じ番号の別種別の要素（海外の無関係な node など）を拾って保存していた。Overpass・Nominatim とも給油所のタグ（`amenity=fuel` / `shop=fuel`）を持つ要素だけを採るように直し、osmId のある行の保存済み座標をマイグレーションで一度クリアして取り直させる（#223） |
 | 2026-09-22 | 登録店舗を削除しても画面を開き直すたびに復活する不具合を修正。`RegisteredGasStation` に論理削除用の `deleted_at` を追加し、削除は物理削除ではなくこのフラグを立てる形に変更。給油記録から登録店舗を作り直す sync 処理・給油記録保存時の自動登録の両方で、削除済みの行を復活させないようにした（#178） |
