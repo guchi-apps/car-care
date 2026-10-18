@@ -139,6 +139,21 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ env.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
 
+      # Turbopack は外部パッケージ（@prisma/client など）を .next/node_modules/<名前>-<ハッシュ> という
+      # シンボリックリンクで参照する。app-deploy-gate は deploy.tar.gz にリンクが入っていると
+      # 展開前に拒否する（v4.0.23 のデプロイが落ちた原因・#264）ため、実体のコピーに置き換えてから固める。
+      - name: Replace symlinks in .next with real copies
+        run: |
+          find .next -type l | while read -r link; do
+            target="$(readlink -f "$link")"
+            rm "$link"
+            cp -R "$target" "$link"
+          done
+          if [ -n "$(find .next public prisma deploy -type l)" ]; then
+            echo "::error::アーカイブ対象にシンボリックリンクが残っています"
+            exit 1
+          fi
+
       - name: Create archive
         run: |
           tar -czf deploy.tar.gz \
