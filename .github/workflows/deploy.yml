@@ -248,12 +248,15 @@ jobs:
           SHARED_TOKEN_API_SECRET: ${{ env.SHARED_TOKEN_API_SECRET }}
           ISSUE_DECK_URL: ${{ env.ISSUE_DECK_URL }}
           TARGET_DIR: ${{ env.TARGET_DIR }}
+          # 稼働している版の照合に使う（#257）。ヘルスチェックが `/api/app-version` の `sha` と突き合わせる。
+          # コミットの SHA は公開情報なのでそのまま渡してよい
+          APP_COMMIT_SHA: ${{ github.sha }}
         with:
           host: ${{ env.HOST }}
           username: ${{ env.USERNAME }}
           key: ${{ env.SSH_PRIVATE_KEY }}
           port: ${{ env.SSH_PORT }}
-          envs: DATABASE_URL,MIGRATE_DATABASE_URL,DB_USER,DB_PASSWORD,DB_HOST,DB_PORT,DB_NAME,MIGRATE_DB_USER,MIGRATE_DB_PASSWORD,NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,ALLOWED_GOOGLE_EMAILS,SIGNALY_LOGIN_WEBHOOK_URL,ASSET_MANAGER_IMPORT_SECRET,ZAIM_ALLOWED_EMAILS,SHARED_TOKEN_API_SECRET,ISSUE_DECK_URL,TARGET_DIR
+          envs: APP_COMMIT_SHA,DATABASE_URL,MIGRATE_DATABASE_URL,DB_USER,DB_PASSWORD,DB_HOST,DB_PORT,DB_NAME,MIGRATE_DB_USER,MIGRATE_DB_PASSWORD,NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,ALLOWED_GOOGLE_EMAILS,SIGNALY_LOGIN_WEBHOOK_URL,ASSET_MANAGER_IMPORT_SECRET,ZAIM_ALLOWED_EMAILS,SHARED_TOKEN_API_SECRET,ISSUE_DECK_URL,TARGET_DIR
           script: |
             set -euo pipefail
             cd "${TARGET_DIR}"
@@ -276,6 +279,7 @@ jobs:
             echo "Updating .env..."
             update_env NODE_ENV production
             update_env PORT "$PORT"
+            update_env APP_COMMIT_SHA "$APP_COMMIT_SHA"
             update_env DATABASE_URL "$DATABASE_URL"
             update_env DB_USER "$DB_USER"
             update_env DB_PASSWORD "$DB_PASSWORD"
@@ -327,15 +331,19 @@ jobs:
             # アプリが正常に立ち上がっていても deploy ジョブが失敗する。失敗すると後続の
             # release がスキップされ、タグはあるのに GitHub Release が作られない状態になる
             # （複数アプリを同時にデプロイした際に実際に発生した）。
+            # /login は旧版が動いたままでも 200 を返すため、`/api/app-version` が返す `sha` が
+            # 今回デプロイしたコミットと一致するまで成功にしない（#257）。
             for i in $(seq 1 30); do
-              if curl -fsS -o /dev/null "http://127.0.0.1:${PORT}/login"; then
-                echo "Deployment successful."
+              body="$(curl -fsS "http://127.0.0.1:${PORT}/api/app-version" 2>/dev/null || true)"
+              if [ -n "$body" ] && printf '%s' "$body" | grep -qF "\"sha\":\"${APP_COMMIT_SHA}\""; then
+                echo "Deployment successful. (sha=${APP_COMMIT_SHA})"
                 exit 0
               fi
               sleep 2
             done
 
-            echo "Health check failed after 60s."
+            echo "Health check failed after 60s: /api/app-version did not report sha=${APP_COMMIT_SHA}."
+            echo "last response: ${body:-<none>}"
             pm2 describe car-app || true
             pm2 logs car-app --lines 50 --nostream || true
             exit 1
