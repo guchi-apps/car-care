@@ -156,7 +156,7 @@
 | `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase Auth（開発用プロジェクト） | 本番用とは別プロジェクト（#27）。`service_role` キーは使わない |
 | `ACCESS_API_URL` | StatusHub 判定APIの宛先 | 任意。未設定は本番の StatusHub。トークンは issue-deck の共有トークン `CAR_CARE_ACCESS_APP_TOKEN`（#237） |
 | `SIGNALY_LOGIN_WEBHOOK_URL` | 通知（新規登録・ログイン共通） | 任意。未設定なら通知をスキップ |
-| `ASSET_MANAGER_IMPORT_SECRET` | Asset Manager の取り込み口の認証 | Asset Manager 側の `ZAIM_SYNC_SECRET` と同じ値。未設定なら「家計簿連携」を出さない（#141） |
+| `ASSET_MANAGER_IMPORT_SECRET` | Asset Manager の取り込み口の認証 | Asset Manager 側の `ZAIM_SYNC_SECRET` と同じ値。共有トークンが取れないときだけ使う。**ローカル開発専用**で本番へは配らない（#261） |
 | `SHARED_TOKEN_API_SECRET` / `ISSUE_DECK_URL` | issue-deck の共有トークン API（#212） | 両方そろうと、`ASSET_MANAGER_IMPORT_SECRET` より共有トークン `ASSET_MANAGER_ZAIM_SYNC_SECRET` を優先する。任意 |
 | `ASSET_MANAGER_URL` | 送信先 | 任意。未設定なら `http://127.0.0.1:3102`。ローカルで確認するときは指定する（#141） |
 | `ZAIM_ALLOWED_EMAILS` | 家計簿連携を使ってよい Google アカウント | カンマ区切り。**未設定なら誰も使えない**（#26） |
@@ -173,9 +173,8 @@
 | `MIGRATE_DB_USER`, `MIGRATE_DB_PASSWORD` | マイグレーション専用 DB ユーザー（`ALTER` 権限あり。organization の共通値。未設定なら通常ユーザーへフォールバック） |
 | `TARGET_DIR` (`target-dir`) | VPS デプロイ先パス |
 | `PORT` (`port`) | 待受ポート |
-| `ASSET_MANAGER_IMPORT_SECRET` (`op://apps/aide/asset-manager-zaim-sync-secret`) | Asset Manager の取り込み口の認証。AIDE・Asset Manager と同じ値（#141） |
 | `ZAIM_ALLOWED_EMAILS` (`zaim-allowed-emails`) | 家計簿連携を使ってよい Google アカウント（#26） |
-| `SHARED_TOKEN_API_SECRET` (`op://apps/issue-deck/shared-token-api-secret`) / `ISSUE_DECK_URL`（organization variable `APP_BASE_URL`） | 共有トークンの取得（#212）。取得できなければ `ASSET_MANAGER_IMPORT_SECRET` へフォールバック。利用元は issue-deck の設定画面で確認する |
+| `SHARED_TOKEN_API_SECRET` (`op://apps/issue-deck/shared-token-api-secret`) / `ISSUE_DECK_URL`（organization variable `APP_BASE_URL`） | 共有トークンの取得（#212）。Asset Manager の取り込み口の認証値は共有トークン `ASSET_MANAGER_ZAIM_SYNC_SECRET` だけから読み、旧 `ASSET_MANAGER_IMPORT_SECRET` は配らない（#261。取得できなければ家計簿連携を出さない）。利用元は issue-deck の設定画面で確認する |
 
 ---
 
@@ -237,6 +236,7 @@ DevOps:   ecosystem.config.js, .github/workflows/ci.yml, .github/workflows/deplo
 
 | 日付 | 内容 |
 |------|------|
+| 2026-10-19 | 家計簿連携の認証値（Asset Manager の取り込み口）を、1Password からのフォールバック配布をやめて issue-deck の共有トークン `ASSET_MANAGER_ZAIM_SYNC_SECRET` だけにした。マニフェストと `deploy.yml` から `ASSET_MANAGER_IMPORT_SECRET` を撤去し、VPS の `.env` に残った旧値は空で上書きする。ローカル開発では `.env.local` の値を引き続き使える（#261） |
 | 2026-10-18 | 本番デプロイを VPS の `app-deploy-gate` 経由へ移した。organization 共通鍵で SSH 先のシェルを動かす形をやめ、アプリ専用鍵で `upload`・`env`・`deploy` だけを呼ぶ。展開・`.env` 更新・`npm ci`・マイグレーション（直前に `deploy/pre-migrate.sh` でスキーマのずれを補修）・pm2・稼働版の照合は gate が行う（gate 側の対応は guchi-apps/vps#300）。鍵の発行・VPS での登録・同期は、`main` へのリリース前に人が行う（#259） |
 | 2026-10-16 | リリース workflow（`release-develop-to-main.yml`）の caller に新方式の入口 `candidate_request`・`finalize_request` を追加し、issue-deck の画面から「候補を作成して検証」→公開準備を起動できるようにした。参照タグは `workflows/v52` のまま（両入力と develop 同期追跡 #4641 を含む）。**同期 push で旧方式のバンプを始めない修正（issue-deck#4650）を含む公開済みタグがまだ無いため、本番対応済みとはしない**。そのタグへの参照更新と通しの確認は issue-deck#4651 で追跡する（#251） |
 | 2026-10-01 | 登録店舗の距離が 9999km のように実際より大きく表示される不具合を修正。OSM の ID は node / way / relation で番号が独立しているのに、osmId から座標を引くときに同じ番号の別種別の要素（海外の無関係な node など）を拾って保存していた。Overpass・Nominatim とも給油所のタグ（`amenity=fuel` / `shop=fuel`）を持つ要素だけを採るように直し、osmId のある行の保存済み座標をマイグレーションで一度クリアして取り直させる（#223） |

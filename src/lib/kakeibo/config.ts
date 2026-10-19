@@ -35,7 +35,9 @@ export const ASSET_MANAGER_SHARED_TOKEN_NAME = "ASSET_MANAGER_ZAIM_SYNC_SECRET";
 
 /**
  * 共有トークンを優先し、取得できなければ環境変数 ASSET_MANAGER_IMPORT_SECRET へ
- * フォールバックする。フォールバックに黙って落ちていないかは、issue-deck の設定画面で
+ * フォールバックする。**環境変数は共有トークン API を持たないローカル開発のためだけに残している。**
+ * 本番へは配らない（#261）ため、本番で共有トークンが取れなければ null になり、家計簿連携の
+ * UI も出なくなる（`isKakeiboAvailableFor`）。取れているかは、issue-deck の設定画面で
  * 利用元に car-care が出ているかで確認できる。
  */
 export async function getAssetManagerEndpoint(): Promise<AssetManagerEndpoint | null> {
