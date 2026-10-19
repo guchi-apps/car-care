@@ -190,9 +190,12 @@ AIDE 経由で Zaim の Web 版（my.zaim.net）の入力画面から行う。
   毎回変わり、一度決めた内訳が二度と当たらなくなる
 - **Asset Manager の認証値は issue-deck の共有トークン `ASSET_MANAGER_ZAIM_SYNC_SECRET` から実行時に取る**
   （`src/lib/shared-token.ts`。10 分キャッシュ・失敗時は直前の値・無ければ `ASSET_MANAGER_IMPORT_SECRET`）。
-  フォールバックしても画面は正常に見えるため、**secret / variable の未登録は issue-deck の設定画面で
-  利用元に `car-care` が出ているかで確認する**（#212）。値と Bearer はログに出さない
-- **`ASSET_MANAGER_IMPORT_SECRET` が無い環境では連携 UI を出さない。** 未設定でも画面が壊れない
+  **`ASSET_MANAGER_IMPORT_SECRET` は本番へ配らない（#261）。** 共有トークン API を持たないローカル開発のためだけの
+  逃げ道で、マニフェスト・`deploy.yml` に戻さない（戻すと 1Password と共有トークンの二重管理に戻る）。
+  `deploy.yml` は VPS の `.env` に残った旧値を空で上書きしている（gate は送らなかった変数を消さないため）。
+  共有トークンが取れているかは、**issue-deck の設定画面で利用元に `car-care` が出ているかで確認する**（#212）。
+  値と Bearer はログに出さない
+- **認証値（共有トークン、ローカルでは `ASSET_MANAGER_IMPORT_SECRET`）が取れない環境では連携 UI を出さない。** 未設定でも画面が壊れない
   ようにするため。判定は `isKakeiboAvailableFor(email)` の 1 か所に寄せてある
 - **テーブルは `kakeibo_settings`、モデル名は `KakeiboSetting`。** OAuth 時代（#26）の列は #146 で
   DROP 済みで、残っているのは「自動で送るか」「支払元カード名」「最後に送った日時」だけ。
