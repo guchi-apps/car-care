@@ -25,7 +25,7 @@
 
 | レイヤー | 状態 |
 |----------|------|
-| 認証（Supabase Auth）・Signaly・proxy | ✅ |
+| 認証（Supabase Auth）・proxy | ✅ |
 | DB スキーマ（Prisma） | ✅ |
 | ローカル開発環境（`.env.local`、1Password 不要） | ✅ |
 | PWA | ✅ |
@@ -46,7 +46,6 @@
 | Supabase Auth（Google） | ✅ | `src/lib/supabase/`, `src/app/auth/`, `src/proxy.ts`（本番 / 開発で別 Supabase プロジェクト。開発用は `.env.local`）（#27） |
 | 許可 Google アカウント判定 | ✅ | `src/lib/access/`（StatusHub の共通アクセス設定の判定API。`src/instrumentation.ts` がハートビート）（#27・#237） |
 | WebAuthn / Passkey | 🚫 | Supabase Auth 移行に伴い廃止（#27）。`authenticators` テーブルは切り戻し用に残置 |
-| Signaly Webhook（ログイン通知） | ✅ | `src/lib/signaly.ts`, `src/app/auth/callback/route.ts` |
 | PWA | ✅ | `public/manifest.json`, `public/sw.js`, `public/icons/`, `app-bottom-nav.tsx`, `app-page.tsx` |
 | アプリアイコン | ✅ | `scripts/icon.template.svg` が原本。`npm run generate:icons` で `public/icons/*` と `src/app/favicon.ico` を書き出す（#132） |
 | 起動中のローディング画面（PWA） | ✅ | `src/components/app-splash.tsx`, `src/app/globals.css`（`display-mode: standalone` のときだけ表示）（#132） |
@@ -74,14 +73,13 @@
 
 ## 3. 機能要件
 
-### ① 認証 & Signaly 通知
+### ① 認証
 
 | 要件 | 状態 | 備考 |
 |------|------|------|
 | Google ログイン | ✅ | Supabase Auth 経由（#27）。`/auth/signin` → Google → `/auth/callback` |
 | 許可外 Google アカウントの拒否 | ✅ | StatusHub の判定API（#237。旧 `ALLOWED_GOOGLE_EMAILS` は参照しない）。ログイン済みの利用者にも毎リクエスト（30 秒キャッシュ）で効く。拒否時は users を作らず、このアプリのセッションも破棄（#27）。破棄は `local` scope で他アプリのセッションは失効させない（#169） |
 | パスキー登録 → 2回目以降顔認証ログイン | 🚫 | Supabase Auth 移行に伴い廃止（#27） |
-| Signaly ログイン通知（新規登録・既存ログイン共通） | ✅ | `/auth/callback` → `SIGNALY_LOGIN_WEBHOOK_URL`（Discord から移行済み） |
 | 未ログイン時の認証ガード | ✅ | `src/proxy.ts`（Next.js 16 で `middleware.ts` から改称） |
 | ログアウト | ✅ | `POST /auth/signout`。`signOutThisApp()` が `local` scope で呼ぶため、共有 Supabase を使う他アプリ・他端末のログインは維持される（#169） |
 
@@ -134,7 +132,6 @@
 | `develop` で開発 → `main` で安定版 | ✅ | 機能は Issue ごとの `issue-<番号>` ブランチ → `develop`。`develop` → `main` はバージョン bump PR（`release/vX.Y.Z`）を経て `release-main/vX.Y.Z` の PR で行う（`release-develop-to-main.yml`。`main` へのマージは人間が手動で行う）。issue-deck の画面からの新方式（候補作成 `release-rc/<番号>` → 公開準備 → 本番反映）にも caller が対応済み（#251） |
 | `main` マージ時 GitHub Actions デプロイ | ✅ | `deploy.yml`。稼働中 |
 | `main` マージ時 Git tag / GitHub Release | ✅ | `package.json` version から `v*` タグを自動作成し、デプロイ成功後に Release を作る。バージョンを据え置いたままの `main` 向け PR は `version-tag-check.yml` が落とす |
-| CI Signaly 通知 | ✅ | `.github/workflows/ci.yml`（失敗時 + `main` 向け PR のみ、Discord から Signaly へ移行済み） |
 
 デプロイ手順（workflow）: tag → build → deploy →（成功時のみ）release。build で `npm run build:ci` → VPS の `app-deploy-gate` へ `upload`・`env`・`deploy`（gate が `.env` 同期 → `npm ci` → `deploy/pre-migrate.sh` → `prisma migrate deploy` → pm2 再起動 → 稼働版の照合。#259）
 
@@ -155,7 +152,6 @@
 | `DB_NAME`, `DB_USER`, `DB_PASSWORD` | ローカル DB 認証 | 値は自由。`npm run db:setup` でユーザー・DB 作成 |
 | `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase Auth（開発用プロジェクト） | 本番用とは別プロジェクト（#27）。`service_role` キーは使わない |
 | `ACCESS_API_URL` | StatusHub 判定APIの宛先 | 任意。未設定は本番の StatusHub。トークンは issue-deck の共有トークン `CAR_CARE_ACCESS_APP_TOKEN`（#237） |
-| `SIGNALY_LOGIN_WEBHOOK_URL` | 通知（新規登録・ログイン共通） | 任意。未設定なら通知をスキップ |
 | `ASSET_MANAGER_IMPORT_SECRET` | Asset Manager の取り込み口の認証 | Asset Manager 側の `ZAIM_SYNC_SECRET` と同じ値。共有トークンが取れないときだけ使う。**ローカル開発専用**で本番へは配らない（#261） |
 | `SHARED_TOKEN_API_SECRET` / `ISSUE_DECK_URL` | issue-deck の共有トークン API（#212） | 両方そろうと、`ASSET_MANAGER_IMPORT_SECRET` より共有トークン `ASSET_MANAGER_ZAIM_SYNC_SECRET` を優先する。任意 |
 | `ASSET_MANAGER_URL` | 送信先 | 任意。未設定なら `http://127.0.0.1:3102`。ローカルで確認するときは指定する（#141） |
@@ -169,7 +165,6 @@
 | `SSH_HOST`, `SSH_USER`, `SSH_PORT` | 本番 DB SSH トンネル |
 | `ALLOWED_GOOGLE_EMAILS` (`allowed-google-emails`) | **旧**ログイン許可リスト。#237 でコードから参照しなくなった（旧設定の整理は移行検証後） |
 | `AUTH_URL` | 公開 URL（アプリからは参照しない。Supabase の Redirect URLs 登録・Apache VirtualHost 生成で使う） |
-| `SIGNALY_LOGIN_WEBHOOK_URL` | 通知（新規登録・ログイン共通）。全アプリ共通のため organization secret から渡る（値の正は `op://apps/Notify/login-webhook-url`） |
 | `MIGRATE_DB_USER`, `MIGRATE_DB_PASSWORD` | マイグレーション専用 DB ユーザー（`ALTER` 権限あり。organization の共通値。未設定なら通常ユーザーへフォールバック） |
 | `TARGET_DIR` (`target-dir`) | VPS デプロイ先パス |
 | `PORT` (`port`) | 待受ポート |
@@ -184,7 +179,7 @@
 |---|------|------|
 | 1 | PWA `manifest.json` 雛形 | ✅ |
 | 2 | Prisma スキーマ（MySQL + Supabase ユーザー紐付け） | ✅ |
-| 3 | Webhook 通知基盤（Signaly） | ✅ |
+| 3 | Webhook 通知基盤（Signaly）。廃止済み（#273） | 🚫 |
 | 4 | `ecosystem.config.js` | ✅ |
 | — | `develop` ブランチで開発 | ✅ |
 
@@ -198,7 +193,6 @@
 給油:     src/app/(app)/fuel/, src/components/fuel-*.tsx, src/lib/fuel-*.ts, src/app/api/gas-stations/route.ts
 メンテ:   src/app/(app)/maintenance/, src/components/maintenance-*.tsx, src/lib/maintenance-*.ts
 家計簿:   src/lib/kakeibo/, src/app/(app)/settings/kakeibo-actions.ts, src/components/kakeibo-settings.tsx
-Signaly:  src/lib/signaly.ts
 DB:       prisma/schema.prisma, src/lib/prisma.ts, src/lib/database-url.ts
 ローカル環境: .env.local.example, scripts/with-local-env.sh, scripts/setup-db.sh（1Password 不要）
 1Password（本番 DB 確認用）: .env.op.example, scripts/with-op-env.sh, scripts/with-op-prod-db.sh, scripts/prod-db-tunnel.sh
@@ -240,6 +234,7 @@ DevOps:   ecosystem.config.js, .github/workflows/ci.yml, .github/workflows/deplo
 | 2026-10-18 | 本番デプロイを VPS の `app-deploy-gate` 経由へ移した。organization 共通鍵で SSH 先のシェルを動かす形をやめ、アプリ専用鍵で `upload`・`env`・`deploy` だけを呼ぶ。展開・`.env` 更新・`npm ci`・マイグレーション（直前に `deploy/pre-migrate.sh` でスキーマのずれを補修）・pm2・稼働版の照合は gate が行う（gate 側の対応は guchi-apps/vps#300）。鍵の発行・VPS での登録・同期は、`main` へのリリース前に人が行う（#259） |
 | 2026-10-16 | リリース workflow（`release-develop-to-main.yml`）の caller に新方式の入口 `candidate_request`・`finalize_request` を追加し、issue-deck の画面から「候補を作成して検証」→公開準備を起動できるようにした。参照タグは `workflows/v52` のまま（両入力と develop 同期追跡 #4641 を含む）。**同期 push で旧方式のバンプを始めない修正（issue-deck#4650）を含む公開済みタグがまだ無いため、本番対応済みとはしない**。そのタグへの参照更新と通しの確認は issue-deck#4651 で追跡する（#251） |
 | 2026-10-01 | 登録店舗の距離が 9999km のように実際より大きく表示される不具合を修正。OSM の ID は node / way / relation で番号が独立しているのに、osmId から座標を引くときに同じ番号の別種別の要素（海外の無関係な node など）を拾って保存していた。Overpass・Nominatim とも給油所のタグ（`amenity=fuel` / `shop=fuel`）を持つ要素だけを採るように直し、osmId のある行の保存済み座標をマイグレーションで一度クリアして取り直させる（#223） |
+| 2026-11-01 | Signaly の廃止（guchi-apps/signaly#375）に伴い、ログイン通知と CI・デプロイ・リリースの通知ジョブを撤去（#273）。通知の送信先は用意しない。以下の履歴の Signaly 通知に関する記述は撤去前の経緯 |
 | 2026-09-22 | 登録店舗を削除しても画面を開き直すたびに復活する不具合を修正。`RegisteredGasStation` に論理削除用の `deleted_at` を追加し、削除は物理削除ではなくこのフラグを立てる形に変更。給油記録から登録店舗を作り直す sync 処理・給油記録保存時の自動登録の両方で、削除済みの行を復活させないようにした（#178） |
 | 2026-09-22 | 給油記録の登録・更新（`createFuelLogAction`/`updateFuelLogAction`）で、記録自体は保存済みなのに登録店舗の更新（`upsertRegisteredGasStationFromFuelLog`）が unique 制約に衝突して例外を投げ、「登録に失敗しました」と表示されて利用者が二重入力してしまう不具合を修正。同関数を osmId・registeredName の両方の候補で既存行を先に引き当てる方式（#179 と同じ考え方）に直し、あわせて登録店舗更新の失敗を家計簿送信と同じ「おまけ」扱いにして給油記録の保存自体は失敗にしないようにした（#177、起点は #167） |
 | 2026-09-22 | `notifySignalyLogin()` が読む環境変数名だけ `SIGNALY_WEBHOOK_LOGIN_URL`（旧名）のままで、#119 の改名（`SIGNALY_LOGIN_WEBHOOK_URL` へ）に追従しておらず、本番でログイン通知が一度も送られていなかった不具合を修正。`src/lib/signaly.ts` の参照先を新名へ合わせた（#176、起点は #167） |

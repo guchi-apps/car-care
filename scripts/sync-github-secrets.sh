@@ -12,7 +12,7 @@
 #   op signin                      # 先に個人アカウントでサインインしておく
 #   scripts/sync-github-secrets.sh --dry-run
 #   scripts/sync-github-secrets.sh
-#   scripts/sync-github-secrets.sh --only SIGNALY_WEBHOOK_URL,HOST
+#   scripts/sync-github-secrets.sh --only ALLOWED_GOOGLE_EMAILS,HOST
 #
 #
 # organizationの共通値（SERVER_*・SHARED_DB_*）はguchi-apps/issue-deck側で管理する。
