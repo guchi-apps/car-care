@@ -14,7 +14,6 @@
 | 給油記録 | 入力・一覧・編集・削除、燃費ダッシュボード（燃費・単価・月別走行距離グラフ）、周辺ガソリンスタンド検索、登録店舗の距離順表示 |
 | メンテナンス | カテゴリ別の整備履歴（入力・一覧・編集・削除）、次回メンテ予定アラート、走行距離グラフ |
 | 設定 | ガソリンスタンドブランド・登録店舗・メンテカテゴリの管理 |
-| 通知 | 新規登録・ログイン時、CI / デプロイ結果の Signaly Webhook 通知 |
 | PWA | `manifest.json`、Service Worker（更新検知・自動リロード）、モバイルファースト UI |
 
 実装状況の詳細は [`docs/SPEC_PROGRESS.md`](./docs/SPEC_PROGRESS.md) を参照してください。
@@ -59,7 +58,7 @@ cp .env.local.example .env.local
 
 `service_role` キーはフロントエンドにもリポジトリにも置きません。
 
-`SIGNALY_LOGIN_WEBHOOK_URL` は任意です（未設定ならログイン通知をスキップします）。フィールド一覧は [`.env.local.example`](./.env.local.example) を参照してください。
+フィールド一覧は [`.env.local.example`](./.env.local.example) を参照してください。
 
 ### 3. データベース
 
@@ -144,7 +143,6 @@ npm run dev:prod-db:tunnel
 
 - **トリガー:** `develop` への push、`main` / `develop` 向け PR
 - **内容:** ESLint、本番ビルド（`build:ci`）
-- **Signaly 通知:** `develop` push 時は失敗のみ、`main` 向け PR では成功・失敗・キャンセルを通知
 
 ### バージョン管理
 

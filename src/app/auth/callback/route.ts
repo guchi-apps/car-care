@@ -1,9 +1,8 @@
-import { after, NextResponse, type NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 import { isUserAllowed } from "@/lib/access/client";
 import { prisma } from "@/lib/prisma";
 import { getRequestOrigin, safeNextPath } from "@/lib/request-origin";
-import { notifySignalyLogin } from "@/lib/signaly";
 import { createClient } from "@/lib/supabase/server";
 import { signOutThisApp } from "@/lib/supabase/sign-out";
 
@@ -45,11 +44,6 @@ export async function GET(request: NextRequest) {
   const image = (metadata.avatar_url as string) ?? null;
 
   await linkSupabaseUser({ supabaseUserId: user.id, email: email!, name, image });
-
-  // ログイン通知はログインの成否とは関係ない「おまけ」（kakeiboの送信と同じ扱い）。
-  // リダイレクトを待たせないよう、応答を返したあとに送る。
-  const provider = user.app_metadata?.provider ?? null;
-  after(() => notifySignalyLogin({ email, name, provider }));
 
   return NextResponse.redirect(`${origin}${next}`);
 }

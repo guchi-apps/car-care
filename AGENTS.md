@@ -305,7 +305,7 @@ Status = 今どこにいるか、Label = どんな性質・条件があるか、
 `npm run build`（`build:ci` ではない方）は `scripts/with-local-env.sh` を通すためローカル環境の
 `.env` を要求する。**CI・無人実行では `build:ci` を使う。**
 
-`next/headers` を使うサーバー専用モジュール（`src/lib/signaly.ts` など）は、開発サーバーを起動しなくても
+`next/headers` を使うサーバー専用モジュール（`src/lib/auth-user.ts` など）は、開発サーバーを起動しなくても
 tsx で単体実行して振る舞いを確かめられる。`next/headers` をスタブへ差し替える `paths` を書いた
 tsconfig を作り、`npx tsx --tsconfig <その tsconfig> <検証スクリプト>` で読み込む
 （送信先はローカルに立てた `node:http` のサーバーにして、実際のボディを目視する）。
