@@ -41,8 +41,6 @@ export type KakeiboImportPayload = {
   name: string;
   /** 給油量のような使用量。品名の末尾へ足されるだけで、金額には使われない。 */
   usage?: string | null;
-  /** 支払元の Zaim 口座名。決められなければ Asset Manager 側の既定カードへ落ちる。 */
-  accountHint?: string | null;
   /** 抽出の確信度。画面から入力された値なので 1。 */
   confidence?: number;
   sourceMetadata?: Record<string, unknown>;

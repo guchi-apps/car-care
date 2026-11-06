@@ -148,9 +148,8 @@ export async function sendFuelLogToKakeibo(
 
   const payload = buildFuelPayload(fuelLog);
 
-  if (setting.cardAccountName) {
-    payload.accountHint = setting.cardAccountName;
-  }
+  // 支払方法（カード名）は送らない。給油記録は car-care を正とし、口座は Asset Manager 側で
+  // 届いたカード明細と突き合わせて決める（asset-manager#859）。
 
   try {
     const response = await sendPaymentImport(payload);
