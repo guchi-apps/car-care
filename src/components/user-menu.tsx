@@ -85,7 +85,7 @@ export function UserMenu({ name, email, image }: UserMenuProps) {
         aria-label="アカウントメニューを開く"
         aria-expanded={open}
         aria-controls={menuId}
-        className="app-btn-icon border border-white/25 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20"
+        className="app-btn-icon border border-border text-foreground hover:bg-surface-muted"
         onClick={() => setOpen((current) => !current)}
       >
         <svg
@@ -108,9 +108,9 @@ export function UserMenu({ name, email, image }: UserMenuProps) {
         <div
           id={menuId}
           role="menu"
-          className="absolute top-full right-0 z-50 mt-2 w-72 overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-lg shadow-slate-900/10 dark:border-slate-600 dark:bg-slate-800 dark:shadow-black/30"
+          className="absolute top-full right-0 z-50 mt-2 w-72 overflow-hidden rounded-xl border border-border bg-surface"
         >
-          <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3 dark:border-slate-700">
+          <div className="flex items-center gap-3 border-b border-border px-4 py-3">
             <UserAvatar name={name} email={email} image={image} />
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">

@@ -19,7 +19,7 @@ export function HomeWelcomeCard({
     : null;
 
   return (
-    <section className="app-card overflow-hidden border-l-4 border-l-blue-500">
+    <section className="app-card overflow-hidden">
       <div className="flex items-start gap-4">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-2xl dark:bg-blue-900/40">
           🚗

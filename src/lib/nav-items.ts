@@ -9,7 +9,7 @@ export type MenuItem = {
 };
 
 const fuelAccent =
-  "border-l-amber-400 bg-amber-50/50 hover:border-amber-300 dark:border-l-amber-500 dark:bg-amber-950/30 dark:hover:border-amber-400";
+  "bg-surface hover:border-amber-400 dark:hover:border-amber-500";
 const fuelIconBg = "bg-amber-100 dark:bg-amber-900/40";
 
 export const menuItems: MenuItem[] = [
@@ -38,7 +38,7 @@ export const menuItems: MenuItem[] = [
     href: "/maintenance",
     ready: true,
     accent:
-      "border-l-violet-400 bg-violet-50/50 hover:border-violet-300 dark:border-l-violet-500 dark:bg-violet-950/30 dark:hover:border-violet-400",
+      "bg-surface hover:border-violet-400 dark:hover:border-violet-500",
     iconBg: "bg-violet-100 dark:bg-violet-900/40",
   },
   {
@@ -48,7 +48,7 @@ export const menuItems: MenuItem[] = [
     href: "/vehicles",
     ready: true,
     accent:
-      "border-l-emerald-400 bg-emerald-50/50 hover:border-emerald-300 dark:border-l-emerald-500 dark:bg-emerald-950/30 dark:hover:border-emerald-400",
+      "bg-surface hover:border-emerald-400 dark:hover:border-emerald-500",
     iconBg: "bg-emerald-100 dark:bg-emerald-900/40",
   },
   {
@@ -58,7 +58,7 @@ export const menuItems: MenuItem[] = [
     href: "/settings",
     ready: true,
     accent:
-      "border-l-slate-300 bg-slate-50/50 dark:border-l-slate-500 dark:bg-slate-800/50",
+      "bg-surface-muted",
     iconBg: "bg-slate-100 dark:bg-slate-700",
   },
 ];

@@ -105,7 +105,7 @@ export default async function MaintenancePage() {
             <div className="flex">
               <Link
                 href="/maintenance/new"
-                className="app-btn-primary w-full bg-violet-600 shadow-violet-600/20 hover:bg-violet-700 sm:ml-auto sm:w-auto dark:bg-violet-500 dark:hover:bg-violet-400"
+                className="app-btn-primary w-full bg-violet-600 hover:opacity-90 sm:ml-auto sm:w-auto dark:bg-violet-500"
               >
                 メンテナンスを記録する
               </Link>

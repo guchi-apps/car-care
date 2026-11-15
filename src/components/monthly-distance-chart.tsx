@@ -183,7 +183,7 @@ function DistanceChart({
             id="distance-chart-year"
             value={selectedYear}
             onChange={(event) => onYearChange(Number(event.target.value))}
-            className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-base text-slate-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:focus:border-blue-400 dark:focus:ring-blue-900/50"
+            className="rounded-xl border border-border bg-surface px-2.5 py-1.5 text-base text-foreground outline-none focus:border-accent"
           >
             {availableYears.map((year) => (
               <option key={year} value={year}>

@@ -1189,7 +1189,7 @@ export function GasStationMapPicker({
     failureReason === "permission-denied" || failureReason === "timeout";
 
   const mapControlButtonClass =
-    "pointer-events-auto rounded-full border border-slate-300 bg-white/95 text-slate-800 shadow-md backdrop-blur-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-600 dark:bg-slate-900/95 dark:text-slate-100 dark:hover:bg-slate-800";
+    "pointer-events-auto rounded-full border border-border bg-surface text-foreground transition hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60";
 
   return (
     <div className="relative z-0 space-y-3">

@@ -26,15 +26,15 @@ export function AppSidebar({ open, onClose }: AppSidebarProps) {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-slate-200/80 bg-white shadow-xl transition-transform duration-200 ease-out dark:border-slate-700/80 dark:bg-slate-900 lg:static lg:z-auto lg:translate-x-0 lg:shadow-none ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-surface transition-transform duration-200 ease-out lg:static lg:z-auto lg:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
-        <div className="border-b border-blue-800/20 bg-gradient-to-r from-blue-800 via-blue-700 to-blue-600 px-4 py-5 dark:border-slate-700/50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-          <p className="text-xs font-medium tracking-wide text-blue-100/80 uppercase">
+        <div className="border-b border-border px-4 py-5">
+          <p className="text-xs font-medium tracking-wide text-muted uppercase">
             Car Care
           </p>
-          <p className="mt-0.5 text-sm font-semibold text-white">メニュー</p>
+          <p className="mt-0.5 text-sm font-semibold text-foreground">メニュー</p>
         </div>
 
         <nav className="flex-1 overflow-y-auto p-3">
@@ -87,7 +87,7 @@ export function AppSidebar({ open, onClose }: AppSidebarProps) {
           </ul>
         </nav>
 
-        <div className="border-t border-slate-200/80 px-4 py-3 dark:border-slate-700/80">
+        <div className="border-t border-border px-4 py-3">
           <p className="text-center text-xs text-slate-400 dark:text-slate-500">
             v{APP_VERSION}
           </p>

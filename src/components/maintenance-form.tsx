@@ -32,7 +32,7 @@ export function MaintenanceForm({ vehicleId, categories }: MaintenanceFormProps)
   }, [state.ok, router]);
 
   return (
-    <section className="app-card border-l-4 border-l-violet-500">
+    <section className="app-card">
       <h2 className="app-section-title">メンテナンス情報を入力</h2>
       <p className="mt-1 text-sm text-slate-500">
         カテゴリは
@@ -50,7 +50,7 @@ export function MaintenanceForm({ vehicleId, categories }: MaintenanceFormProps)
         <button
           type="submit"
           disabled={pending || categories.length === 0}
-          className="app-btn-primary flex w-full bg-violet-600 py-3 shadow-violet-600/20 hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-violet-500 dark:hover:bg-violet-400"
+          className="app-btn-primary flex w-full bg-violet-600 py-3 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-violet-500"
         >
           {pending ? "登録中..." : "メンテナンスを記録する"}
         </button>

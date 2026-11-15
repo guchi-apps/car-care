@@ -31,11 +31,7 @@ export default async function VehicleDetailPage({
 
       <AppPage className="space-y-6">
         <section
-          className={`app-card border-l-4 p-6 ${
-            vehicle.isActive
-              ? "border-l-emerald-500"
-              : "border-l-slate-300 dark:border-l-slate-600"
-          }`}
+          className="app-card p-6"
         >
           <VehicleDetails vehicle={vehicle} />
         </section>

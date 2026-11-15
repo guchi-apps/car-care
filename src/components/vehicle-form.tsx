@@ -27,7 +27,7 @@ export function VehicleForm() {
   }, [state.ok, router]);
 
   return (
-    <section className="app-card border-l-4 border-l-blue-500">
+    <section className="app-card">
       <h2 className="app-section-title">車両を登録</h2>
       <p className="mt-1 text-sm app-text-subtle">
         車両名は必須です。車種名・型式・燃料種別・車検満了日の入力を推奨します。

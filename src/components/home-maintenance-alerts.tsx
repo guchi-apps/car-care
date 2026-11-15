@@ -16,7 +16,7 @@ export function HomeMaintenanceAlerts({ alerts }: HomeMaintenanceAlertsProps) {
   }
 
   return (
-    <section className="app-card overflow-hidden border-l-4 border-l-red-500">
+    <section className="app-card overflow-hidden">
       <div className="flex items-start gap-4">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-100 text-2xl dark:bg-red-950/40">
           ⚠️

@@ -63,7 +63,7 @@ export function FuelForm({
   }
 
   return (
-    <section className="app-card border-l-4 border-l-amber-500">
+    <section className="app-card">
       <h2 className="app-section-title">給油情報を入力</h2>
       <p className="mt-1 text-sm text-slate-500">
         前回給油からの距離を入力するとオドメーターが、満タン給油時は距離と給油量から燃費が自動計算されます。
@@ -83,7 +83,7 @@ export function FuelForm({
         <button
           type="submit"
           disabled={pending}
-          className="app-btn-primary flex w-full bg-amber-600 py-3 shadow-amber-600/20 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-400"
+          className="app-btn-primary flex w-full bg-amber-600 py-3 hover:opacity-90 dark:bg-amber-500"
         >
           {pending ? "登録中..." : "給油を記録する"}
         </button>
