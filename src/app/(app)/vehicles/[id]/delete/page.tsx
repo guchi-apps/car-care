@@ -29,7 +29,7 @@ export default async function VehicleDeletePage({
       />
 
       <AppPage>
-        <section className="app-card border-l-4 border-l-red-500">
+        <section className="app-card">
           <div className="flex items-start gap-3">
             <span className="text-2xl" aria-hidden="true">
               ⚠️

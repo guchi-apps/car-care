@@ -202,10 +202,8 @@ function FuelLogCard({
 
   return (
     <article
-      className={`app-card border-l-4 p-5 ${
-        selectionMode && selected
-          ? "border-l-blue-500 ring-2 ring-blue-200 dark:ring-blue-800"
-          : "border-l-amber-400"
+      className={`app-card p-5 ${
+        selectionMode && selected ? "border-accent" : ""
       }`}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">

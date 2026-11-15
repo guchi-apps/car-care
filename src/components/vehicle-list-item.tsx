@@ -30,11 +30,7 @@ export function VehicleListItem({ vehicle }: VehicleListItemProps) {
   return (
     <Link
       href={`/vehicles/${vehicle.id}`}
-      className={`app-card block border-l-4 p-5 transition hover:border-blue-300 hover:shadow-md active:scale-[0.99] dark:hover:border-blue-600 ${
-        vehicle.isActive
-          ? "border-l-emerald-500"
-          : "border-l-slate-300 dark:border-l-slate-600"
-      }`}
+      className="app-card block p-5 transition hover:border-accent"
     >
       <div className="flex items-center justify-between gap-4">
         <div className="min-w-0 flex-1">

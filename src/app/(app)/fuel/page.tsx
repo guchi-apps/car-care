@@ -92,7 +92,7 @@ export default async function FuelPage() {
             <div className="flex">
               <Link
                 href="/fuel/new"
-                className="app-btn-primary w-full bg-amber-600 shadow-amber-600/20 hover:bg-amber-700 sm:ml-auto sm:w-auto dark:bg-amber-500 dark:hover:bg-amber-400"
+                className="app-btn-primary w-full bg-amber-600 hover:opacity-90 sm:ml-auto sm:w-auto dark:bg-amber-500"
               >
                 給油を記録する
               </Link>

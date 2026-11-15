@@ -38,8 +38,8 @@ function FuelSummaryMetric({
 export function FuelSummary({ stats }: FuelSummaryProps) {
   return (
     <section className="space-y-4">
-      <div className="app-card overflow-hidden border-l-4 border-l-violet-500 p-0">
-        <div className="grid grid-cols-2 divide-x divide-slate-200 dark:divide-slate-600">
+      <div className="app-card overflow-hidden p-0">
+        <div className="grid grid-cols-2 divide-x divide-border">
           <FuelSummaryMetric
             label="総走行距離"
             value={
@@ -61,8 +61,8 @@ export function FuelSummary({ stats }: FuelSummaryProps) {
         </div>
       </div>
 
-      <div className="app-card overflow-hidden border-l-4 border-l-emerald-500 p-0">
-        <div className="grid grid-cols-2 divide-x divide-slate-200 dark:divide-slate-600">
+      <div className="app-card overflow-hidden p-0">
+        <div className="grid grid-cols-2 divide-x divide-border">
           <FuelSummaryMetric
             label="直近の燃費"
             value={

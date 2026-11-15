@@ -129,7 +129,7 @@ export function FuelLogConfirmPanel({
   const date = new Date(summary.date);
 
   return (
-    <section className="app-card border-l-4 border-l-emerald-500 p-4 sm:p-5">
+    <section className="app-card p-4 sm:p-5">
       <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
         給油記録を登録しました
       </h2>

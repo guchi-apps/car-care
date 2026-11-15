@@ -28,7 +28,7 @@ export default async function VehicleEditPage({ params }: VehicleEditPageProps) 
       />
 
       <AppPage className="space-y-6">
-        <section className="app-card border-l-4 border-l-blue-500">
+        <section className="app-card">
           <h2 className="app-section-title">車両情報を編集</h2>
           <p className="mt-1 text-sm app-text-subtle">
             変更内容を入力して保存してください。
