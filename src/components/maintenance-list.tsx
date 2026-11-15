@@ -128,16 +128,9 @@ function MaintenanceLogCard({
 
   return (
     <article
-      className={`app-card border-l-4 p-5 ${
-        selectionMode && selected
-          ? "border-l-blue-500 ring-2 ring-blue-200 dark:ring-blue-800"
-          : ""
+      className={`app-card p-5 ${
+        selectionMode && selected ? "border-accent" : ""
       }`}
-      style={
-        selectionMode && selected
-          ? undefined
-          : { borderLeftColor: categoryColorStyle.color }
-      }
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 flex-1 items-start gap-3">
